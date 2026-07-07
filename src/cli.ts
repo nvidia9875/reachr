@@ -1,12 +1,8 @@
 #!/usr/bin/env -S npx tsx
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { parsePlan } from './parse.ts';
-import { buildGraph } from './graph.ts';
-import { scan } from './invariants.ts';
-import { diffFindings } from './drift.ts';
+import { analyze } from './analyze.ts';
 import { printReport } from './report.ts';
-import type { Graph, ScanResult } from './types.ts';
 
 interface Args {
   declared: string;
@@ -35,38 +31,20 @@ function writeFile(path: string, contents: string): void {
   writeFileSync(path, contents);
 }
 
-function scanFile(path: string): ScanResult {
-  return scan(buildGraph(parsePlan(path)));
-}
-
-/** Graphs use Map<> internally; flatten for JSON so the future web viz can read it. */
-function serialize(graph: Graph) {
-  return { nodes: [...graph.nodes.values()], edges: graph.edges };
-}
-
 function main(): void {
   const argv = process.argv.slice(2);
-  const cmd = argv[0] === 'scan' ? argv.slice(1) : argv;
-  const args = parseArgs(cmd);
+  const args = parseArgs(argv[0] === 'scan' ? argv.slice(1) : argv);
 
-  let declared: ScanResult;
-  let actual: ScanResult;
+  let result;
   try {
-    declared = scanFile(args.declared);
-    actual = scanFile(args.actual);
+    result = analyze(args.declared, args.actual);
   } catch (err) {
     console.error(`\n  reachr: ${(err as Error).message}\n`);
     process.exit(2);
   }
 
-  const drift = diffFindings(declared.findings, actual.findings);
+  const { declared, actual, drift, payload } = result;
   printReport(declared, actual, drift);
-
-  const payload = {
-    declared: { graph: serialize(declared.graph), findings: declared.findings },
-    actual: { graph: serialize(actual.graph), findings: actual.findings },
-    drift,
-  };
 
   if (args.json) {
     writeFile(args.json, JSON.stringify(payload, null, 2));

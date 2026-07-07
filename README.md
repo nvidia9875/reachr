@@ -44,14 +44,30 @@ code**.
 ```bash
 npm install
 npm run scan          # diff the bundled declared vs actual fixtures (terminal)
-npm run viz           # build viz/data.js, then open viz/index.html in a browser
+npm run serve         # serve the map + Gemini API on :8080 → open http://localhost:8080
+npm run viz           # build viz/data.js to open viz/index.html directly (map only, no API)
 npm run scan:json     # write out/graph.json (machine-readable)
 ```
 
-The visualizer (`viz/index.html`) is a self-contained, dependency-free page: a
-layered attack-surface map with a **declared / actual** toggle, drift paths
-glowing red, and the crown-jewel data stores on the right. It inherits the
-Aegis Mission Control design language (dark-luxury oklch, holographic HUD).
+The visualizer is a layered attack-surface map with a **declared / actual**
+toggle, drift paths glowing red, and the crown-jewel data stores on the right.
+It inherits the Aegis Mission Control design language (dark-luxury oklch,
+holographic HUD).
+
+### Gemini (Vertex AI)
+
+`npm run serve` runs Reachr's web surface (this is what deploys to **Cloud
+Run**) and exposes a Gemini-backed API:
+
+- **Explain & fix** — click any drift finding → Gemini explains the risk and
+  generates a minimal Terraform patch that closes that exact path.
+- **Ask** — natural-language queries over the graph ("can anyone reach my DB
+  from the internet?") highlight the matching paths.
+
+Set Vertex AI creds (`GOOGLE_GENAI_USE_VERTEXAI=true` + `GOOGLE_CLOUD_PROJECT`)
+or a `GEMINI_API_KEY` — see `.env.example`. **Without credentials it uses a
+deterministic fallback**, so the demo always works. The graph itself is never
+produced by the LLM.
 
 Point it at your own captures:
 
@@ -94,8 +110,7 @@ Graph truth is **deterministic code** — no LLM decides what can reach what.
 ## Roadmap
 
 - [x] Web visualizer (layered attack-surface map, declared/actual toggle, drift in red)
-- [ ] Gemini layer (Vertex AI): explain each path, generate the Terraform fix,
-      NL queries ("can anything on the internet reach my DB?")
+- [x] Gemini layer (Vertex AI): explain each path, generate the Terraform fix, NL queries
 - [ ] GitHub Action wrapper (PR comment with the introduced paths)
 - [ ] `demo-target/`: real deployable GCP app (Cloud Run + LB + Armor + Cloud SQL
       + GCS) + `drift.sh`, and a `collect` command that reads real

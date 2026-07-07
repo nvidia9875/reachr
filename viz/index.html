@@ -219,6 +219,38 @@
       .legend div { display: flex; align-items: center; gap: 8px; font: 500 10.5px/1 var(--font-mono); color: var(--muted); letter-spacing: 0.02em; }
       .legend i { width: 20px; height: 0; border-top-width: 2.5px; border-top-style: solid; }
 
+      /* ── Gemini: query bar + explain/fix modal ─────────────────────────── */
+      .qbar { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in oklch, var(--void) 70%, transparent); transition: border-color 0.2s; }
+      .qbar:focus-within { border-color: color-mix(in oklch, var(--evolve) 55%, transparent); }
+      .qbar .ico { color: var(--evolve); font-size: 12px; }
+      .qbar input { flex: 1; background: transparent; border: none; outline: none; color: var(--ink); font: 500 12.5px/1.3 var(--font-body); }
+      .qbar input::placeholder { color: var(--faint); }
+      .qanswer { font: 500 11.5px/1.5 var(--font-body); color: var(--heal); margin: 0 2px 12px; }
+      .qanswer:empty { display: none; }
+      .qanswer .src { color: var(--faint); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; }
+
+      .finding.active { background: color-mix(in oklch, var(--evolve) 15%, transparent); box-shadow: inset 2px 0 0 var(--evolve); }
+
+      .overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: color-mix(in oklch, var(--abyss) 74%, transparent); backdrop-filter: blur(4px); }
+      .overlay[hidden] { display: none; }
+      .sheet { --hud-tint: var(--evolve); width: min(600px, 94vw); max-height: 86vh; overflow: auto; padding: 22px 24px; }
+      .sheet.is-danger { --hud-tint: var(--danger); }
+      .sheet .close { position: absolute; top: 7px; right: 13px; z-index: 3; background: transparent; border: none; color: var(--muted); font-size: 15px; cursor: pointer; }
+      .sheet .close:hover { color: var(--ink); }
+      .sheet h3 { margin: 6px 0 3px; font: 700 16px/1.3 var(--font-display); color: var(--ink); }
+      .sheet .route { font: 500 11px/1.4 var(--font-mono); color: var(--faint); margin-bottom: 15px; }
+      .sheet .risk { font: 600 13.5px/1.5 var(--font-body); color: color-mix(in oklch, var(--danger) 80%, white); margin-bottom: 8px; }
+      .sheet .explain { font: 500 13px/1.6 var(--font-body); color: var(--muted); margin-bottom: 17px; }
+      .fixhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+      .fixhead .panel-title { color: var(--heal); }
+      .copy { background: transparent; border: 1px solid var(--line); color: var(--muted); font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; padding: 6px 10px; border-radius: 7px; cursor: pointer; }
+      .copy:hover { color: var(--ink); border-color: var(--muted); }
+      .sheet pre { margin: 0; padding: 14px; border-radius: 10px; background: oklch(9% 0.02 275); border: 1px solid var(--line); overflow-x: auto; font: 500 11.5px/1.6 var(--font-mono); color: color-mix(in oklch, var(--heal) 88%, white); }
+      .badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 15px; font: 600 9.5px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+      .badge b { color: var(--evolve); }
+      .loading { color: var(--muted); font: 500 12.5px/1.6 var(--font-body); padding: 12px 0; }
+      .loading b { color: var(--heal); }
+
       @media (prefers-reduced-motion: reduce) {
         .scanline, .pill .led, .node.hit::after, .packet { animation: none !important; }
       }
@@ -261,6 +293,8 @@
             <span class="drift-count" id="driftCount">0</span>
           </div>
           <div class="sub" id="driftSub"></div>
+          <div class="qbar"><span class="ico">✦</span><input id="q" placeholder="ask Gemini: can anyone reach my DB?" autocomplete="off" aria-label="Ask a question about the graph" /></div>
+          <div class="qanswer" id="qanswer"></div>
           <ul class="findings" id="findings"></ul>
         </div>
         <div class="hud legend" aria-label="Legend">
@@ -273,6 +307,15 @@
       </aside>
     </main>
 
+    <div class="overlay" id="overlay" hidden>
+      <div class="hud sheet" role="dialog" aria-modal="true" aria-label="Explain and fix">
+        <span class="hud-tab">GEMINI · EXPLAIN &amp; FIX</span>
+        <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
+        <button class="close" id="sheetClose" aria-label="Close">✕</button>
+        <div id="sheetBody"></div>
+      </div>
+    </div>
+
     <script src="data.js"></script>
     <script>
       const D = window.REACHR_DATA;
@@ -281,6 +324,8 @@
       const COLW = 168, NODEW = 132, NODEH = 64, MX = 30, MID1 = 200, MID2 = 452, ROWH = 106;
 
       const ekey = (e) => `${e.from}>${e.to}>${e.via}`;
+      const VIZ = { edgeEls: new Map(), sigMapLi: new Map() };
+      const findingBySig = new Map(D.actual.findings.map((f) => [f.signature, f]));
 
       function colOf(n) {
         const t = n.meta && n.meta.type;
@@ -351,6 +396,8 @@
 
         const NS = "http://www.w3.org/2000/svg";
         const edgeEls = new Map();
+        VIZ.edgeEls = edgeEls;
+        VIZ.sigMapLi.clear();
         G.edges.forEach((e, i) => {
           const a = pos[e.from], b = pos[e.to];
           if (!a || !b) return;
@@ -433,6 +480,8 @@
             const keys = f.path ? f.path.edges.map(ekey) : [];
             li.addEventListener("mouseenter", () => focusEdges(edgeEls, keys, true));
             li.addEventListener("mouseleave", () => focusEdges(edgeEls, keys, false));
+            li.addEventListener("click", () => openSheet(f));
+            VIZ.sigMapLi.set(f.signature, li);
             ul.appendChild(li);
           });
 
@@ -468,6 +517,83 @@
           document.documentElement.dataset.mode = mode;
           document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("data-on", String(x.dataset.mode === mode)));
         });
+      });
+
+      // ── Gemini: explain & fix modal ──────────────────────────────────────
+      const escapeHtml = (s) =>
+        String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+      async function openSheet(f) {
+        const overlay = document.getElementById("overlay");
+        const body = document.getElementById("sheetBody");
+        overlay.querySelector(".sheet").classList.toggle("is-danger", f.severity === "critical");
+        overlay.hidden = false;
+        const route = f.path ? f.path.nodeIds.map((id) => nodeLabel(D.actual.graph, id)).join("  →  ") : "";
+        const head = `<h3>${escapeHtml(f.title)}</h3><div class="route">${escapeHtml(route)}</div>`;
+        body.innerHTML = head + `<div class="loading">✦ asking <b>Gemini</b> to explain &amp; fix…</div>`;
+        try {
+          const r = await fetch("/api/explain", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ signature: f.signature }),
+          });
+          if (!r.ok) throw new Error();
+          const d = await r.json();
+          body.innerHTML =
+            head +
+            `<div class="risk">${escapeHtml(d.risk)}</div>` +
+            `<div class="explain">${escapeHtml(d.explanation)}</div>` +
+            `<div class="fixhead"><span class="panel-title">Terraform fix</span><button class="copy" id="copyfix">COPY</button></div>` +
+            `<pre>${escapeHtml(d.terraform)}</pre>` +
+            `<div class="badge">generated by <b>${d.source === "gemini" ? "Gemini · Vertex AI" : "deterministic fallback"}</b></div>`;
+          document.getElementById("copyfix").addEventListener("click", (ev) => {
+            navigator.clipboard && navigator.clipboard.writeText(d.terraform);
+            ev.target.textContent = "COPIED";
+            setTimeout(() => (ev.target.textContent = "COPY"), 1200);
+          });
+        } catch {
+          body.innerHTML = head + `<div class="loading">Run <b>npm run serve</b> and open the served URL for live Gemini explanations &amp; fixes.</div>`;
+        }
+      }
+      function closeSheet() { document.getElementById("overlay").hidden = true; }
+      document.getElementById("sheetClose").addEventListener("click", closeSheet);
+      document.getElementById("overlay").addEventListener("click", (e) => { if (e.target.id === "overlay") closeSheet(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+
+      // ── Gemini: natural-language query ───────────────────────────────────
+      function highlightMatches(sigs) {
+        const set = new Set(sigs);
+        VIZ.sigMapLi.forEach((li) => li.classList.remove("active"));
+        VIZ.edgeEls.forEach((el) => el.classList.remove("focus", "dim"));
+        if (!sigs.length) return;
+        const keys = [];
+        set.forEach((sig) => {
+          const f = findingBySig.get(sig);
+          if (f && f.path) keys.push(...f.path.edges.map(ekey));
+          const li = VIZ.sigMapLi.get(sig);
+          if (li) li.classList.add("active");
+        });
+        VIZ.edgeEls.forEach((el, k) => el.classList.toggle(keys.includes(k) ? "focus" : "dim", true));
+      }
+
+      const qInput = document.getElementById("q");
+      qInput.addEventListener("keydown", async (e) => {
+        if (e.key !== "Enter" || !qInput.value.trim()) return;
+        const ans = document.getElementById("qanswer");
+        ans.textContent = "✦ thinking…";
+        try {
+          const r = await fetch("/api/query", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ question: qInput.value.trim() }),
+          });
+          if (!r.ok) throw new Error();
+          const d = await r.json();
+          ans.innerHTML = `${escapeHtml(d.answer)} <span class="src">· ${d.source}</span>`;
+          highlightMatches(d.matched || []);
+        } catch {
+          ans.innerHTML = `Run <b>npm run serve</b> for natural-language queries.`;
+        }
       });
 
       render();
