@@ -3,6 +3,7 @@ out/
 dist/
 viz/data.js
 reachr-report.md
+remediation/
 *.log
 .DS_Store
 .env

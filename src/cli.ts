@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { analyze } from './analyze.ts';
 import { printReport } from './report.ts';
 import { runCi } from './ci.ts';
+import { runAgent } from './agent.ts';
 
 interface Args {
   declared: string;
@@ -65,10 +66,14 @@ function runScan(args: Args): never {
 function main(): void {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
-  const rest = cmd === 'scan' || cmd === 'ci' ? argv.slice(1) : argv;
-  const args = parseArgs(rest);
+  const known = cmd === 'scan' || cmd === 'ci' || cmd === 'agent';
+  const args = parseArgs(known ? argv.slice(1) : argv);
 
   if (cmd === 'ci') runCi(args);
+  if (cmd === 'agent') {
+    void runAgent(args);
+    return;
+  }
   runScan(args);
 }
 

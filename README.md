@@ -45,6 +45,7 @@ code**.
 npm install
 npm run scan          # diff the bundled declared vs actual fixtures (terminal)
 npm run serve         # serve the map + Gemini API on :8080 → open http://localhost:8080
+npm run agent         # autonomous loop: detect drift → Gemini reasons → write Terraform fixes
 npm run viz           # build viz/data.js to open viz/index.html directly (map only, no API)
 npm run scan:json     # write out/graph.json (machine-readable)
 ```
@@ -79,6 +80,20 @@ npx tsx src/cli.ts scan \
 
 Exit code is **1** when new paths reach your data, so it drops straight into a
 GitHub Action as a required check.
+
+## Deploy to Cloud Run
+
+Reachr's web surface runs on **Cloud Run** and calls **Vertex AI** for Gemini.
+One command (the container is smoke-tested via `docker build` + run):
+
+```bash
+gcloud auth login
+./deploy.sh <PROJECT_ID>       # enables APIs, builds, deploys, wires Vertex AI env
+```
+
+If the Explain panel shows "deterministic fallback" after deploy, grant
+`roles/aiplatform.user` to the Cloud Run runtime service account (the script
+prints the exact command).
 
 ## CI — attack-path regression
 
@@ -141,7 +156,8 @@ Graph truth is **deterministic code** — no LLM decides what can reach what.
       + GCS) + `drift.sh`, and a `collect` command that reads real
       `terraform show -json` + Cloud Asset Inventory (upgrades the parser off the
       simplified fixture refs)
-- [ ] Deploy Reachr on Cloud Run (eligibility: GCP execution product + Vertex AI)
+- [x] Autonomous remediation agent (`reachr agent`) — detect → Gemini reason → write fixes
+- [x] Cloud Run deploy (`deploy.sh`, container smoke-tested) + Vertex AI wiring
 - [ ] More GCP coverage (GKE authorized networks, Memorystore, BigQuery IAM)
 
 > Fixtures model AWS-free GCP topology. `fixtures/actual/` has no `main.tf` on

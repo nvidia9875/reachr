@@ -10,6 +10,7 @@
     "scan": "tsx src/cli.ts scan",
     "scan:json": "tsx src/cli.ts scan --json out/graph.json",
     "viz": "tsx src/cli.ts scan --js viz/data.js || true",
+    "agent": "tsx src/cli.ts agent",
     "serve": "tsx src/server.ts",
     "typecheck": "tsc --noEmit"
   },
