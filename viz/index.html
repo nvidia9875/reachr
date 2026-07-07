@@ -147,14 +147,29 @@
       @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
       /* ── layout ────────────────────────────────────────────────────────── */
-      main { flex: 1; display: grid; grid-template-columns: 1fr 330px; gap: 18px; padding: 6px 24px 28px; min-height: 0; align-items: start; position: relative; z-index: 1; }
+      main { flex: 1; display: grid; grid-template-columns: 1fr 312px; gap: 18px; padding: 6px 24px 26px; min-height: 0; align-items: stretch; position: relative; z-index: 1; }
       @media (max-width: 940px) { main { grid-template-columns: 1fr; } }
 
-      .map { min-height: 624px; }
-      .map .scroll { position: absolute; inset: 0; overflow: auto; padding-top: 30px; }
+      .map { min-height: 560px; display: flex; flex-direction: column; }
+      .map .scroll { position: relative; flex: 1; overflow: auto; padding: 24px 0 10px; display: flex; flex-direction: column; justify-content: center; }
+
+      /* bottom telemetry strip — fills the panel + adds instrument feel */
+      .mapfoot { display: flex; align-items: center; gap: 20px; padding: 13px 20px; border-top: 1px solid color-mix(in oklch, var(--heal) 15%, transparent); }
+      .mapfoot .stat { display: flex; flex-direction: column; gap: 4px; }
+      .mapfoot .stat b { font: 700 19px/1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+      .mapfoot .stat b.danger { color: color-mix(in oklch, var(--danger) 82%, white); }
+      .mapfoot .stat b.safe { color: var(--healthy); }
+      .mapfoot .stat span { font: 600 8.5px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+      .mapfoot .sep { width: 1px; height: 30px; background: var(--line); }
+      .mapfoot .live { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+      .mapfoot .wave { display: flex; align-items: flex-end; gap: 2.5px; height: 22px; }
+      .mapfoot .wave i { width: 2.5px; border-radius: 2px; background: color-mix(in oklch, var(--heal) 68%, transparent); transform-origin: bottom; animation: wave 1.15s ease-in-out infinite; }
+      @keyframes wave { 0%, 100% { transform: scaleY(0.28); } 50% { transform: scaleY(1); } }
+      .mapfoot .livetag { display: flex; align-items: center; gap: 7px; font: 600 9px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+      .mapfoot .livetag .led { width: 6px; height: 6px; border-radius: 99px; background: var(--heal); box-shadow: 0 0 8px var(--heal); animation: blink 1.5s ease-in-out infinite; }
       .col-labels { position: absolute; top: 0; left: 0; height: 100%; pointer-events: none; }
-      .col-label { position: absolute; top: 34px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em; color: var(--faint); text-transform: uppercase; }
-      .col-label::after { content: ""; position: absolute; left: 2px; top: 20px; width: 1px; height: calc(100vh); max-height: 460px; background: linear-gradient(180deg, color-mix(in oklch, var(--line) 80%, transparent), transparent); }
+      .col-label { position: absolute; top: 6px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em; color: var(--faint); text-transform: uppercase; }
+      .col-label::after { content: ""; position: absolute; left: 2px; top: 19px; width: 1px; height: 460px; background: linear-gradient(180deg, color-mix(in oklch, var(--line) 70%, transparent), transparent 85%); }
       .stage { position: relative; }
       svg.edges { position: absolute; inset: 0; overflow: visible; }
 
@@ -170,32 +185,46 @@
       .edge.dim { opacity: 0.07 !important; }
       .edge.focus { opacity: 1; stroke-width: 3.6; }
 
-      /* ── map node (HUD chip) ───────────────────────────────────────────── */
+      /* ── map node (HUD instrument) ─────────────────────────────────────── */
       .node {
         --nt: var(--faint);
-        position: absolute; width: 132px; min-height: 60px; padding: 10px 11px;
+        position: absolute; width: 140px; min-height: 76px; padding: 9px 11px 9px 13px;
         background:
-          linear-gradient(180deg, color-mix(in oklch, var(--nt) 14%, transparent), color-mix(in oklch, var(--nt) 4%, transparent)),
-          linear-gradient(180deg, color-mix(in oklch, var(--void) 90%, transparent), color-mix(in oklch, var(--abyss) 94%, transparent));
-        border: 1px solid color-mix(in oklch, var(--nt) 34%, transparent);
+          linear-gradient(180deg, color-mix(in oklch, var(--nt) 15%, transparent), color-mix(in oklch, var(--nt) 3%, transparent)),
+          linear-gradient(180deg, color-mix(in oklch, var(--void) 90%, transparent), color-mix(in oklch, var(--abyss) 95%, transparent));
+        border: 1px solid color-mix(in oklch, var(--nt) 36%, transparent);
         backdrop-filter: blur(6px);
-        clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
-        box-shadow: 0 8px 22px oklch(8% 0.02 275 / 0.55), inset 0 0 16px color-mix(in oklch, var(--nt) 7%, transparent);
-        transition: transform 0.2s, box-shadow 0.2s;
+        clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        box-shadow: 0 10px 24px oklch(8% 0.02 275 / 0.55), inset 0 0 18px color-mix(in oklch, var(--nt) 8%, transparent);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
       }
-      .node .row { display: flex; align-items: center; gap: 8px; }
-      .node .ico { font-size: 15px; line-height: 1; filter: saturate(1.1); }
-      .node .label { font: 700 13.5px/1.1 var(--font-body); letter-spacing: -0.01em; color: var(--ink); }
-      .node .type { margin-top: 6px; font: 500 9.5px/1.2 var(--font-mono); letter-spacing: 0.02em; color: var(--faint); word-break: break-all; text-transform: none; }
+      .node:hover { transform: translateY(-2px); box-shadow: 0 15px 32px oklch(8% 0.02 275 / 0.62), inset 0 0 18px color-mix(in oklch, var(--nt) 13%, transparent); }
+      .node .spine { position: absolute; left: 0; top: 11px; bottom: 5px; width: 2px; background: linear-gradient(180deg, var(--nt), transparent); box-shadow: 0 0 8px color-mix(in oklch, var(--nt) 60%, transparent); }
+      .node .port { position: absolute; top: calc(50% - 3px); width: 6px; height: 6px; border-radius: 99px; background: color-mix(in oklch, var(--nt) 72%, var(--abyss)); box-shadow: 0 0 0 2px var(--abyss), 0 0 6px color-mix(in oklch, var(--nt) 50%, transparent); }
+      .node .port.in { left: -3px; }
+      .node .port.out { right: -3px; }
+      .node .ntag { font: 600 8px/1 var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; color: color-mix(in oklch, var(--nt) 72%, white); margin-bottom: 7px; }
+      .node .nmain { display: flex; align-items: center; gap: 8px; }
+      .node .ico { display: grid; place-items: center; width: 23px; height: 23px; font-size: 13px; border-radius: 6px; background: color-mix(in oklch, var(--nt) 18%, transparent); border: 1px solid color-mix(in oklch, var(--nt) 30%, transparent); flex: none; }
+      .node .label { font: 700 13px/1.1 var(--font-body); letter-spacing: -0.01em; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .node .nmeta { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 9px; }
+      .node .type { font: 500 8.5px/1.2 var(--font-mono); letter-spacing: 0.01em; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .node .state { flex: none; font: 600 7.5px/1 var(--font-mono); letter-spacing: 0.1em; padding: 3px 5px; border-radius: 4px; text-transform: uppercase; color: color-mix(in oklch, var(--nt) 82%, white); background: color-mix(in oklch, var(--nt) 16%, transparent); border: 1px solid color-mix(in oklch, var(--nt) 26%, transparent); }
+      .node .state.exposed { color: color-mix(in oklch, var(--danger) 82%, white); background: color-mix(in oklch, var(--danger) 22%, transparent); border-color: color-mix(in oklch, var(--danger) 42%, transparent); }
+      .node .state.safe { color: var(--healthy); background: color-mix(in oklch, var(--healthy) 15%, transparent); border-color: color-mix(in oklch, var(--healthy) 30%, transparent); }
       .node.internet { --nt: var(--evolve); }
       .node.lb { --nt: var(--heal); }
       .node.waf { --nt: var(--heal); }
       .node.compute { --nt: var(--muted); }
       .node.datastore { --nt: var(--warn); }
-      .node.identity { --nt: var(--warn); width: 118px; }
-      .node.hit { --nt: var(--danger); box-shadow: 0 0 0 1px color-mix(in oklch, var(--danger) 60%, transparent), 0 10px 26px oklch(45% 0.18 18 / 0.5); }
-      .node.hit::after { content: ""; position: absolute; inset: -5px; clip-path: inherit; border: 1px solid var(--danger); opacity: 0.5; animation: pulsering 1.9s ease-out infinite; }
-      @keyframes pulsering { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.06); opacity: 0; } }
+      .node.identity { --nt: var(--warn); }
+      /* the "hit" (reached) treatment only applies in ACTUAL — in DECLARED the
+         data store reads as private/safe, so the toggle flips PRIVATE ⇄ EXPOSED */
+      html[data-mode="actual"] .node.hit { --nt: var(--danger); box-shadow: 0 0 0 1px color-mix(in oklch, var(--danger) 60%, transparent), 0 12px 28px oklch(45% 0.18 18 / 0.5); }
+      html[data-mode="actual"] .node.hit::after { content: ""; position: absolute; inset: -5px; clip-path: inherit; border: 1px solid var(--danger); opacity: 0.5; animation: pulsering 1.9s ease-out infinite; }
+      @keyframes pulsering { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.05); opacity: 0; } }
+      html[data-mode="declared"] .mode-actual { display: none; }
+      html[data-mode="actual"] .mode-declared { display: none; }
 
       /* ── aside / findings ──────────────────────────────────────────────── */
       aside { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
@@ -252,7 +281,9 @@
       .loading b { color: var(--heal); }
 
       @media (prefers-reduced-motion: reduce) {
-        .scanline, .pill .led, .node.hit::after, .packet { animation: none !important; }
+        .scanline, .pill .led, .node.hit::after, .packet,
+        .mapfoot .wave i, .mapfoot .livetag .led { animation: none !important; }
+        .mapfoot .wave i { transform: scaleY(0.6); }
       }
     </style>
   </head>
@@ -279,9 +310,12 @@
         <span class="hud-tab">ATTACK SURFACE · GCP acme-prod</span>
         <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
         <div class="scroll">
-          <div class="col-labels" id="colLabels"></div>
-          <div class="stage" id="stage"><svg class="edges" id="edges" aria-hidden="true"></svg></div>
+          <div class="stage" id="stage">
+            <div class="col-labels" id="colLabels"></div>
+            <svg class="edges" id="edges" aria-hidden="true"></svg>
+          </div>
         </div>
+        <div class="mapfoot" id="mapfoot"></div>
       </section>
 
       <aside>
@@ -321,7 +355,7 @@
       const D = window.REACHR_DATA;
       const ICON = { internet: "🌐", lb: "🔀", waf: "🛡️", compute: "⚙️", datastore: "🗄️", identity: "🔑" };
       const COLS = ["Internet", "Edge", "WAF", "Backend", "Compute", "Data"];
-      const COLW = 168, NODEW = 132, NODEH = 64, MX = 30, MID1 = 200, MID2 = 452, ROWH = 106;
+      const COLW = 172, NODEW = 140, NODEH = 80, MX = 26, MID1 = 168, MID2 = 396, ROWH = 118;
 
       const ekey = (e) => `${e.from}>${e.to}>${e.via}`;
       const VIZ = { edgeEls: new Map(), sigMapLi: new Map() };
@@ -363,6 +397,44 @@
         if (e.channel === "identity") return "identity";
         if (/Armor|inspected/.test(e.via)) return "protected";
         return "";
+      }
+
+      const KIND_TAG = { internet: "INTERNET", waf: "WAF", compute: "COMPUTE", datastore: "DATASTORE", identity: "IDENTITY" };
+      function kindTag(n) {
+        const t = n.meta && n.meta.type;
+        if (t === "google_compute_backend_service") return "BACKEND";
+        if (t === "google_compute_global_forwarding_rule" || t === "google_compute_forwarding_rule") return "LOAD BALANCER";
+        return KIND_TAG[n.kind] || String(n.kind).toUpperCase();
+      }
+      function statusPill(n, hit) {
+        if (n.kind === "datastore") {
+          return hit
+            ? `<span class="state exposed mode-actual">exposed</span><span class="state safe mode-declared">private</span>`
+            : `<span class="state safe">private</span>`;
+        }
+        if (n.kind === "waf") return `<span class="state">active</span>`;
+        if (n.kind === "internet") return `<span class="state">0.0.0.0/0</span>`;
+        if (n.kind === "identity") return `<span class="state">principal</span>`;
+        if (n.kind === "compute") return `<span class="state">service</span>`;
+        return `<span class="state">routes</span>`;
+      }
+      function buildFooter(G, drift) {
+        const nodes = G.nodes;
+        const dataStores = nodes.filter((n) => n.kind === "datastore").length;
+        const exposed = new Set(drift.introduced.map((f) => f.sink)).size;
+        const identities = nodes.filter((n) => n.kind === "identity").length;
+        const paths = drift.introduced.length;
+        const stat = (v, l, cls) => `<div class="stat"><b class="${cls || ""}">${v}</b><span>${l}</span></div>`;
+        const bars = Array.from({ length: 9 }, (_, i) => `<i style="height:${7 + ((i * 7) % 15)}px;animation-delay:${(i * 0.09).toFixed(2)}s"></i>`).join("");
+        document.getElementById("mapfoot").innerHTML =
+          stat(dataStores, "data stores") +
+          `<div class="sep"></div>` +
+          stat(exposed, "exposed", exposed ? "danger" : "safe") +
+          `<div class="sep"></div>` +
+          stat(identities, "identities") +
+          `<div class="sep"></div>` +
+          stat(paths, "drift paths", paths ? "danger" : "safe") +
+          `<div class="live"><div class="wave">${bars}</div><div class="livetag"><span class="led"></span>monitoring</div></div>`;
       }
 
       function render() {
@@ -448,11 +520,16 @@
           el.className = "node " + n.kind + (hitNodes.has(n.id) ? " hit" : "") + (declaredNodeIds.has(n.id) ? " in-declared" : "");
           el.style.left = p.x + "px";
           el.style.top = p.y + "px";
+          const type = n.meta && n.meta.type ? n.meta.type.replace(/^google_/, "") : "";
           el.innerHTML =
-            `<div class="row"><span class="ico">${ICON[n.kind] || "•"}</span><span class="label">${n.label}</span></div>` +
-            (n.meta && n.meta.type ? `<div class="type">${n.meta.type.replace(/^google_/, "")}</div>` : "");
+            `<span class="spine"></span><span class="port in"></span><span class="port out"></span>` +
+            `<div class="ntag">${kindTag(n)}</div>` +
+            `<div class="nmain"><span class="ico">${ICON[n.kind] || "•"}</span><span class="label" title="${n.label}">${n.label}</span></div>` +
+            `<div class="nmeta"><span class="type" title="${type}">${type}</span>${statusPill(n, hitNodes.has(n.id))}</div>`;
           stage.appendChild(el);
         }
+
+        buildFooter(G, D.drift);
 
         // findings
         const ul = document.getElementById("findings");
