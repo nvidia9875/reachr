@@ -43,9 +43,15 @@ code**.
 
 ```bash
 npm install
-npm run scan          # diff the bundled declared vs actual fixtures
-npm run scan:json     # also write out/graph.json for the visualizer
+npm run scan          # diff the bundled declared vs actual fixtures (terminal)
+npm run viz           # build viz/data.js, then open viz/index.html in a browser
+npm run scan:json     # write out/graph.json (machine-readable)
 ```
+
+The visualizer (`viz/index.html`) is a self-contained, dependency-free page: a
+layered attack-surface map with a **declared / actual** toggle, drift paths
+glowing red, and the crown-jewel data stores on the right. It inherits the
+Aegis Mission Control design language (dark-luxury oklch, holographic HUD).
 
 Point it at your own captures:
 
@@ -87,11 +93,15 @@ Graph truth is **deterministic code** — no LLM decides what can reach what.
 
 ## Roadmap
 
-- [ ] `collect` command: pull real `terraform show -json` + Cloud Asset Inventory
+- [x] Web visualizer (layered attack-surface map, declared/actual toggle, drift in red)
+- [ ] Gemini layer (Vertex AI): explain each path, generate the Terraform fix,
+      NL queries ("can anything on the internet reach my DB?")
 - [ ] GitHub Action wrapper (PR comment with the introduced paths)
-- [ ] Web visualizer that reads `out/graph.json` (layered flow, drift in red)
-- [ ] Gemini layer: explain each path, generate the Terraform fix, NL queries
-      ("can anything on the internet reach my DB?")
+- [ ] `demo-target/`: real deployable GCP app (Cloud Run + LB + Armor + Cloud SQL
+      + GCS) + `drift.sh`, and a `collect` command that reads real
+      `terraform show -json` + Cloud Asset Inventory (upgrades the parser off the
+      simplified fixture refs)
+- [ ] Deploy Reachr on Cloud Run (eligibility: GCP execution product + Vertex AI)
 - [ ] More GCP coverage (GKE authorized networks, Memorystore, BigQuery IAM)
 
 > Fixtures model AWS-free GCP topology. `fixtures/actual/` has no `main.tf` on

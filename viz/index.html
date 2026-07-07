@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en" data-mode="actual">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reachr · attack-surface map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ─────────────────────────────────────────────────────────────────
+         Reachr — inherits the Aegis Mission Control design language
+         (dark-luxury control room, disciplined neon in oklch). Map-based.
+         ───────────────────────────────────────────────────────────────── */
+      :root {
+        --void: oklch(13% 0.018 275);
+        --abyss: oklch(10% 0.02 275);
+        --surface: oklch(18% 0.022 275);
+        --line: oklch(30% 0.02 275);
+        --ink: oklch(96% 0.01 275);
+        --muted: oklch(72% 0.02 275);
+        --faint: oklch(55% 0.02 275);
+
+        --heal: oklch(82% 0.13 195); /* cyan — inspected / protected */
+        --evolve: oklch(72% 0.17 295); /* violet — the outside / internet */
+        --warn: oklch(83% 0.15 80); /* amber — identity / crown jewel */
+        --danger: oklch(68% 0.23 18); /* red — reaches your data */
+        --healthy: oklch(82% 0.16 155); /* green — safe */
+        --orbit: oklch(72% 0.17 50); /* orange */
+
+        --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui;
+        --font-body: "Hanken Grotesk", ui-sans-serif, system-ui;
+        --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+        --glass: color-mix(in oklch, var(--surface) 60%, transparent);
+        --glass-line: color-mix(in oklch, var(--ink) 10%, transparent);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        background: var(--abyss);
+        color: var(--ink);
+        font-family: var(--font-body);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        overflow-x: hidden;
+      }
+      /* atmospheric backdrop: radial meshes + grid */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background:
+          radial-gradient(60% 50% at 16% 0%, color-mix(in oklch, var(--evolve) 16%, transparent), transparent 70%),
+          radial-gradient(55% 45% at 100% 14%, color-mix(in oklch, var(--heal) 12%, transparent), transparent 70%),
+          radial-gradient(46% 40% at 50% 116%, color-mix(in oklch, var(--danger) 10%, transparent), transparent 70%),
+          repeating-linear-gradient(0deg, transparent 0 43px, color-mix(in oklch, var(--ink) 4%, transparent) 43px 44px),
+          repeating-linear-gradient(90deg, transparent 0 43px, color-mix(in oklch, var(--ink) 4%, transparent) 43px 44px),
+          var(--abyss);
+      }
+      /* fine grain */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0.05;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .vignette { position: fixed; inset: 0; z-index: -1; pointer-events: none; box-shadow: inset 0 0 260px 60px rgba(0, 0, 0, 0.7); }
+      .scanline {
+        position: fixed; left: 0; right: 0; top: 0; height: 140px; z-index: 0; pointer-events: none;
+        background: linear-gradient(180deg, transparent, color-mix(in oklch, var(--heal) 5%, transparent), transparent);
+        animation: scan 8s linear infinite;
+      }
+      @keyframes scan { from { transform: translateY(-140px); } to { transform: translateY(100vh); } }
+      .xhair { position: fixed; width: 22px; height: 22px; z-index: 1; pointer-events: none; opacity: 0.4; }
+      .xhair::before, .xhair::after { content: ""; position: absolute; background: var(--heal); }
+      .xhair::before { width: 100%; height: 1px; top: 50%; }
+      .xhair::after { height: 100%; width: 1px; left: 50%; }
+      .xhair.tl { top: 10px; left: 10px; } .xhair.tr { top: 10px; right: 10px; }
+      .xhair.bl { bottom: 10px; left: 10px; } .xhair.br { bottom: 10px; right: 10px; }
+
+      .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+      .display { font-family: var(--font-display); letter-spacing: -0.02em; }
+      .panel-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--faint); }
+
+      /* ── HUD holographic panel ─────────────────────────────────────────── */
+      .hud {
+        --hud-tint: var(--heal);
+        --hud-line: color-mix(in oklch, var(--hud-tint) 26%, transparent);
+        position: relative;
+        background:
+          linear-gradient(180deg, color-mix(in oklch, var(--hud-tint) 12%, transparent), color-mix(in oklch, var(--hud-tint) 3%, transparent)),
+          linear-gradient(180deg, color-mix(in oklch, var(--void) 88%, transparent), color-mix(in oklch, var(--abyss) 92%, transparent));
+        border: 1px solid var(--hud-line);
+        backdrop-filter: blur(8px) saturate(150%);
+        clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+        box-shadow: 0 0 28px color-mix(in oklch, var(--hud-tint) 16%, transparent), inset 0 0 30px color-mix(in oklch, var(--hud-tint) 6%, transparent);
+      }
+      .hud::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 38%); clip-path: inherit; pointer-events: none; }
+      .hud::after { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--hud-tint) 42%, transparent), transparent); pointer-events: none; }
+      .hud.is-danger { --hud-tint: var(--danger); }
+      .hud-tab {
+        position: absolute; top: 0; left: 14px; z-index: 2;
+        font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase;
+        color: color-mix(in oklch, var(--hud-tint) 72%, white);
+        background: color-mix(in oklch, var(--hud-tint) 12%, transparent);
+        text-shadow: 0 0 8px color-mix(in oklch, var(--hud-tint) 55%, transparent);
+        border-bottom: 1px solid color-mix(in oklch, var(--hud-tint) 30%, transparent);
+        padding: 3px 12px 4px; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+      }
+      .b { position: absolute; width: 11px; height: 11px; border: 1px solid color-mix(in oklch, var(--hud-tint) 55%, transparent); opacity: 0.55; pointer-events: none; z-index: 2; }
+      .b.tl { top: 5px; left: 5px; border-right: 0; border-bottom: 0; }
+      .b.tr { top: 5px; right: 5px; border-left: 0; border-bottom: 0; }
+      .b.bl { bottom: 5px; left: 5px; border-right: 0; border-top: 0; }
+      .b.br { bottom: 5px; right: 5px; border-left: 0; border-top: 0; }
+
+      /* ── header ────────────────────────────────────────────────────────── */
+      header { display: flex; align-items: center; gap: 18px; padding: 22px 30px 14px; flex-wrap: wrap; position: relative; z-index: 2; }
+      .brand { display: flex; align-items: baseline; gap: 13px; }
+      .brand h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 25px; letter-spacing: 0.02em; }
+      .brand h1 b { color: var(--danger); font-weight: 800; }
+      .brand .tag { color: var(--faint); font: 500 12.5px/1 var(--font-mono); letter-spacing: 0.04em; }
+      .spacer { flex: 1; }
+
+      .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+      .seg button { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; padding: 9px 16px; background: transparent; color: var(--faint); border: none; cursor: pointer; transition: background 0.18s, color 0.18s; }
+      .seg button:hover { color: var(--muted); }
+      .seg button[data-on="true"] { background: color-mix(in oklch, var(--heal) 20%, transparent); color: var(--ink); }
+      html[data-mode="actual"] .seg button.actual[data-on="true"] { background: color-mix(in oklch, var(--danger) 26%, transparent); }
+
+      .pill { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+      .pill .led { width: 7px; height: 7px; border-radius: 99px; animation: blink 1.5s ease-in-out infinite; }
+      .pill.fail { border-color: color-mix(in oklch, var(--danger) 50%, transparent); color: var(--danger); }
+      .pill.fail .led { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+      .pill.pass { border-color: color-mix(in oklch, var(--healthy) 45%, transparent); color: var(--healthy); }
+      .pill.pass .led { background: var(--healthy); box-shadow: 0 0 8px var(--healthy); }
+      @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+      /* ── layout ────────────────────────────────────────────────────────── */
+      main { flex: 1; display: grid; grid-template-columns: 1fr 330px; gap: 18px; padding: 6px 24px 28px; min-height: 0; align-items: start; position: relative; z-index: 1; }
+      @media (max-width: 940px) { main { grid-template-columns: 1fr; } }
+
+      .map { min-height: 624px; }
+      .map .scroll { position: absolute; inset: 0; overflow: auto; padding-top: 30px; }
+      .col-labels { position: absolute; top: 0; left: 0; height: 100%; pointer-events: none; }
+      .col-label { position: absolute; top: 34px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em; color: var(--faint); text-transform: uppercase; }
+      .col-label::after { content: ""; position: absolute; left: 2px; top: 20px; width: 1px; height: calc(100vh); max-height: 460px; background: linear-gradient(180deg, color-mix(in oklch, var(--line) 80%, transparent), transparent); }
+      .stage { position: relative; }
+      svg.edges { position: absolute; inset: 0; overflow: visible; }
+
+      .edge { fill: none; stroke: color-mix(in oklch, var(--faint) 75%, transparent); stroke-width: 1.5; opacity: 0.8; transition: opacity 0.25s, stroke-width 0.2s; }
+      .edge.protected { stroke: var(--heal); stroke-width: 2; opacity: 0.95; filter: drop-shadow(0 0 5px color-mix(in oklch, var(--heal) 45%, transparent)); }
+      .edge.identity { stroke: var(--warn); stroke-width: 1.6; stroke-dasharray: 2 6; opacity: 0.85; }
+      .edge.danger { stroke: var(--danger); stroke-width: 2.6; opacity: 1; filter: drop-shadow(0 0 7px color-mix(in oklch, var(--danger) 78%, transparent)); }
+      .packet { fill: color-mix(in oklch, var(--danger) 92%, white); filter: drop-shadow(0 0 6px var(--danger)); }
+
+      html[data-mode="declared"] .edge:not(.in-declared) { opacity: 0.05; }
+      html[data-mode="declared"] .packet { opacity: 0; }
+      html[data-mode="declared"] .node:not(.in-declared) { opacity: 0.16; filter: grayscale(0.7); }
+      .edge.dim { opacity: 0.07 !important; }
+      .edge.focus { opacity: 1; stroke-width: 3.6; }
+
+      /* ── map node (HUD chip) ───────────────────────────────────────────── */
+      .node {
+        --nt: var(--faint);
+        position: absolute; width: 132px; min-height: 60px; padding: 10px 11px;
+        background:
+          linear-gradient(180deg, color-mix(in oklch, var(--nt) 14%, transparent), color-mix(in oklch, var(--nt) 4%, transparent)),
+          linear-gradient(180deg, color-mix(in oklch, var(--void) 90%, transparent), color-mix(in oklch, var(--abyss) 94%, transparent));
+        border: 1px solid color-mix(in oklch, var(--nt) 34%, transparent);
+        backdrop-filter: blur(6px);
+        clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+        box-shadow: 0 8px 22px oklch(8% 0.02 275 / 0.55), inset 0 0 16px color-mix(in oklch, var(--nt) 7%, transparent);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .node .row { display: flex; align-items: center; gap: 8px; }
+      .node .ico { font-size: 15px; line-height: 1; filter: saturate(1.1); }
+      .node .label { font: 700 13.5px/1.1 var(--font-body); letter-spacing: -0.01em; color: var(--ink); }
+      .node .type { margin-top: 6px; font: 500 9.5px/1.2 var(--font-mono); letter-spacing: 0.02em; color: var(--faint); word-break: break-all; text-transform: none; }
+      .node.internet { --nt: var(--evolve); }
+      .node.lb { --nt: var(--heal); }
+      .node.waf { --nt: var(--heal); }
+      .node.compute { --nt: var(--muted); }
+      .node.datastore { --nt: var(--warn); }
+      .node.identity { --nt: var(--warn); width: 118px; }
+      .node.hit { --nt: var(--danger); box-shadow: 0 0 0 1px color-mix(in oklch, var(--danger) 60%, transparent), 0 10px 26px oklch(45% 0.18 18 / 0.5); }
+      .node.hit::after { content: ""; position: absolute; inset: -5px; clip-path: inherit; border: 1px solid var(--danger); opacity: 0.5; animation: pulsering 1.9s ease-out infinite; }
+      @keyframes pulsering { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.06); opacity: 0; } }
+
+      /* ── aside / findings ──────────────────────────────────────────────── */
+      aside { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+      .hud.pad { padding: 18px 16px 12px; }
+      .drift-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 3px; }
+      .drift-count { font-family: var(--font-display); font-size: 30px; line-height: 1; color: var(--ink); }
+      .drift-count.zero { color: var(--healthy); }
+      .sub { color: var(--muted); font: 500 12px/1.45 var(--font-body); margin-bottom: 14px; }
+      .findings { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+      .finding { display: grid; grid-template-columns: auto 1fr; gap: 11px; padding: 11px 8px; border-radius: 9px; cursor: pointer; transition: background 0.15s; }
+      .finding:hover, .finding.active { background: color-mix(in oklch, var(--ink) 6%, transparent); }
+      .chip { align-self: start; margin-top: 2px; font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; padding: 4px 6px; border-radius: 5px; text-transform: uppercase; }
+      .chip.critical { background: color-mix(in oklch, var(--danger) 30%, transparent); color: color-mix(in oklch, var(--danger) 80%, white); }
+      .chip.high { background: color-mix(in oklch, var(--warn) 26%, transparent); color: var(--warn); }
+      .chip.medium { background: color-mix(in oklch, var(--faint) 30%, transparent); color: var(--muted); }
+      .finding .ft { font: 600 12.5px/1.35 var(--font-body); color: var(--ink); }
+      .finding .fr { margin-top: 4px; font: 500 10px/1.4 var(--font-mono); color: var(--faint); }
+      .empty { color: var(--healthy); font: 600 13px/1.5 var(--font-body); padding: 6px 8px 16px; }
+
+      .legend { display: flex; flex-wrap: wrap; gap: 11px 16px; padding: 15px 16px 16px; }
+      .legend div { display: flex; align-items: center; gap: 8px; font: 500 10.5px/1 var(--font-mono); color: var(--muted); letter-spacing: 0.02em; }
+      .legend i { width: 20px; height: 0; border-top-width: 2.5px; border-top-style: solid; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .scanline, .pill .led, .node.hit::after, .packet { animation: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="vignette"></div>
+    <div class="scanline"></div>
+    <span class="xhair tl"></span><span class="xhair tr"></span><span class="xhair bl"></span><span class="xhair br"></span>
+
+    <header>
+      <div class="brand">
+        <h1 class="display">REACHR<b>.</b></h1>
+        <span class="tag">who can reach your crown jewels</span>
+      </div>
+      <div class="spacer"></div>
+      <div class="seg" role="group" aria-label="View">
+        <button class="declared" data-mode="declared" data-on="false">DECLARED</button>
+        <button class="actual" data-mode="actual" data-on="true">ACTUAL</button>
+      </div>
+      <div id="verdict" class="pill"></div>
+    </header>
+
+    <main>
+      <section class="hud map" aria-label="Attack-surface map">
+        <span class="hud-tab">ATTACK SURFACE · GCP acme-prod</span>
+        <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
+        <div class="scroll">
+          <div class="col-labels" id="colLabels"></div>
+          <div class="stage" id="stage"><svg class="edges" id="edges" aria-hidden="true"></svg></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="hud pad" id="driftPanel" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+          <span class="hud-tab">DRIFT · declared → actual</span>
+          <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
+          <div class="drift-head">
+            <span class="panel-title">paths into your data</span>
+            <span class="drift-count" id="driftCount">0</span>
+          </div>
+          <div class="sub" id="driftSub"></div>
+          <ul class="findings" id="findings"></ul>
+        </div>
+        <div class="hud legend" aria-label="Legend">
+          <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
+          <div><i style="border-color: var(--danger)"></i> reaches data</div>
+          <div><i style="border-color: var(--heal)"></i> WAF-inspected</div>
+          <div><i style="border-color: var(--warn); border-top-style: dashed"></i> identity</div>
+          <div><i style="border-color: var(--faint)"></i> internal</div>
+        </div>
+      </aside>
+    </main>
+
+    <script src="data.js"></script>
+    <script>
+      const D = window.REACHR_DATA;
+      const ICON = { internet: "🌐", lb: "🔀", waf: "🛡️", compute: "⚙️", datastore: "🗄️", identity: "🔑" };
+      const COLS = ["Internet", "Edge", "WAF", "Backend", "Compute", "Data"];
+      const COLW = 168, NODEW = 132, NODEH = 64, MX = 30, MID1 = 200, MID2 = 452, ROWH = 106;
+
+      const ekey = (e) => `${e.from}>${e.to}>${e.via}`;
+
+      function colOf(n) {
+        const t = n.meta && n.meta.type;
+        if (n.kind === "internet") return 0;
+        if (t === "google_compute_global_forwarding_rule" || t === "google_compute_forwarding_rule") return 1;
+        if (n.kind === "waf") return 2;
+        if (t === "google_compute_backend_service") return 3;
+        if (n.kind === "compute") return 4;
+        if (n.kind === "identity") return 4;
+        if (n.kind === "datastore") return 5;
+        return 3;
+      }
+
+      function layout(nodes) {
+        const bands = { upper: {}, lower: {} };
+        for (const n of nodes) {
+          const band = n.kind === "identity" ? "lower" : "upper";
+          (bands[band][colOf(n)] ||= []).push(n);
+        }
+        const pos = {};
+        for (const [band, cols] of Object.entries(bands)) {
+          const midY = band === "lower" ? MID2 : MID1;
+          for (const [col, list] of Object.entries(cols)) {
+            const startY = midY - ((list.length - 1) / 2) * ROWH;
+            list.forEach((n, i) => {
+              pos[n.id] = { x: MX + Number(col) * COLW, y: startY + i * ROWH - NODEH / 2 };
+            });
+          }
+        }
+        return pos;
+      }
+
+      function edgeClass(e, danger) {
+        if (danger) return "danger";
+        if (e.channel === "identity") return "identity";
+        if (/Armor|inspected/.test(e.via)) return "protected";
+        return "";
+      }
+
+      function render() {
+        const stage = document.getElementById("stage");
+        const svg = document.getElementById("edges");
+        const G = D.actual.graph;
+        const nodeById = new Map(G.nodes.map((n) => [n.id, n]));
+        const pos = layout(G.nodes);
+
+        const dangerKeys = new Set(D.drift.introduced.flatMap((f) => (f.path ? f.path.edges.map(ekey) : [])));
+        const declaredEdgeKeys = new Set(D.declared.graph.edges.map(ekey));
+        const declaredNodeIds = new Set(D.declared.graph.nodes.map((n) => n.id));
+        const hitNodes = new Set(D.drift.introduced.map((f) => f.sink));
+
+        const maxX = Math.max(...Object.values(pos).map((p) => p.x)) + NODEW + MX;
+        const maxY = Math.max(...Object.values(pos).map((p) => p.y)) + NODEH + 70;
+        stage.style.width = maxX + "px";
+        stage.style.height = maxY + "px";
+        svg.setAttribute("viewBox", `0 0 ${maxX} ${maxY}`);
+        svg.style.width = maxX + "px";
+        svg.style.height = maxY + "px";
+
+        const cl = document.getElementById("colLabels");
+        COLS.forEach((name, i) => {
+          const el = document.createElement("div");
+          el.className = "col-label";
+          el.textContent = name;
+          el.style.left = MX + i * COLW + "px";
+          cl.appendChild(el);
+        });
+
+        const NS = "http://www.w3.org/2000/svg";
+        const edgeEls = new Map();
+        G.edges.forEach((e, i) => {
+          const a = pos[e.from], b = pos[e.to];
+          if (!a || !b) return;
+          const sx = a.x + NODEW, sy = a.y + NODEH / 2;
+          const tx = b.x, ty = b.y + NODEH / 2;
+          // internet → datastore is the "bypass everything" case: bow it high
+          // over the whole chain so it doesn't visually run through the nodes.
+          const isDirect = e.from === "internet" && nodeById.get(e.to)?.kind === "datastore";
+          let d;
+          if (isDirect) {
+            const archY = 58;
+            d = `M ${sx} ${sy} C ${sx + 150} ${archY}, ${tx - 150} ${archY}, ${tx} ${ty}`;
+          } else {
+            const dx = Math.max(64, (tx - sx) * 0.5);
+            d = `M ${sx} ${sy} C ${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
+          }
+          const danger = dangerKeys.has(ekey(e));
+
+          const path = document.createElementNS(NS, "path");
+          path.setAttribute("d", d);
+          path.setAttribute("id", "edge" + i);
+          path.setAttribute(
+            "class",
+            "edge " + edgeClass(e, danger) + (declaredEdgeKeys.has(ekey(e)) ? " in-declared" : "")
+          );
+          svg.appendChild(path);
+          edgeEls.set(ekey(e), path);
+
+          if (danger) {
+            const dot = document.createElementNS(NS, "circle");
+            dot.setAttribute("r", "3.4");
+            dot.setAttribute("class", "packet");
+            const mo = document.createElementNS(NS, "animateMotion");
+            mo.setAttribute("dur", (1.1 + (i % 3) * 0.28) + "s");
+            mo.setAttribute("repeatCount", "indefinite");
+            const mp = document.createElementNS(NS, "mpath");
+            mp.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#edge" + i);
+            mo.appendChild(mp);
+            dot.appendChild(mo);
+            svg.appendChild(dot);
+          }
+        });
+
+        for (const n of G.nodes) {
+          const p = pos[n.id];
+          if (!p) continue;
+          const el = document.createElement("div");
+          el.className = "node " + n.kind + (hitNodes.has(n.id) ? " hit" : "") + (declaredNodeIds.has(n.id) ? " in-declared" : "");
+          el.style.left = p.x + "px";
+          el.style.top = p.y + "px";
+          el.innerHTML =
+            `<div class="row"><span class="ico">${ICON[n.kind] || "•"}</span><span class="label">${n.label}</span></div>` +
+            (n.meta && n.meta.type ? `<div class="type">${n.meta.type.replace(/^google_/, "")}</div>` : "");
+          stage.appendChild(el);
+        }
+
+        // findings
+        const ul = document.getElementById("findings");
+        const intro = D.drift.introduced;
+        document.getElementById("driftCount").textContent = intro.length;
+        document.getElementById("driftCount").classList.toggle("zero", intro.length === 0);
+        document.getElementById("driftSub").textContent =
+          intro.length === 0
+            ? "Nothing reaches your data outside your Terraform."
+            : "exist in production but not in your Terraform.";
+
+        if (intro.length === 0) {
+          ul.innerHTML = `<div class="empty">✓ clean — no drift into your crown jewels.</div>`;
+        }
+        intro
+          .slice()
+          .sort((a, b) => sev(a) - sev(b))
+          .forEach((f) => {
+            const li = document.createElement("li");
+            li.className = "finding";
+            const route = f.path ? f.path.nodeIds.map((id) => nodeLabel(G, id)).join("  →  ") : "";
+            li.innerHTML =
+              `<span class="chip ${f.severity}">${f.severity}</span>` +
+              `<span><span class="ft">${f.title}</span><span class="fr">${route}</span></span>`;
+            const keys = f.path ? f.path.edges.map(ekey) : [];
+            li.addEventListener("mouseenter", () => focusEdges(edgeEls, keys, true));
+            li.addEventListener("mouseleave", () => focusEdges(edgeEls, keys, false));
+            ul.appendChild(li);
+          });
+
+        // verdict + panel tint
+        const v = document.getElementById("verdict");
+        const panel = document.getElementById("driftPanel");
+        if (intro.length === 0) {
+          v.className = "pill pass";
+          v.innerHTML = `<span class="led"></span> PASS · no drift`;
+        } else {
+          const crit = intro.filter((f) => f.severity === "critical").length;
+          v.className = "pill fail";
+          v.innerHTML = `<span class="led"></span> FAIL · ${intro.length} reach data · ${crit} crit`;
+          panel.classList.add("is-danger");
+        }
+      }
+
+      function sev(f) { return { critical: 0, high: 1, medium: 2 }[f.severity]; }
+      function nodeLabel(G, id) {
+        const n = G.nodes.find((x) => x.id === id);
+        return n ? (ICON[n.kind] || "") + " " + n.label : id;
+      }
+      function focusEdges(edgeEls, keys, on) {
+        edgeEls.forEach((el, k) => {
+          if (keys.includes(k)) el.classList.toggle("focus", on);
+          else el.classList.toggle("dim", on);
+        });
+      }
+
+      document.querySelectorAll(".seg button").forEach((b) => {
+        b.addEventListener("click", () => {
+          const mode = b.dataset.mode;
+          document.documentElement.dataset.mode = mode;
+          document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("data-on", String(x.dataset.mode === mode)));
+        });
+      });
+
+      render();
+    </script>
+  </body>
+</html>

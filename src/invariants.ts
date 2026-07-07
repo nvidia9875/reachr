@@ -35,6 +35,13 @@ export function scan(graph: Graph): ScanResult {
     const sink = graph.nodes.get(e.to)!;
     const principal = graph.nodes.get(e.from)!;
     const severity: Severity = e.exposure === 'public' ? 'critical' : 'medium';
+    const path: AttackPath = {
+      nodeIds: [e.from, e.to],
+      edges: [e],
+      sink: e.to,
+      passesWaf: false,
+      channel: 'identity',
+    };
     findings.push({
       rule: 'IDENTITY_REACH',
       severity,
@@ -44,6 +51,7 @@ export function scan(graph: Graph): ScanResult {
           ? `${sink.label} grants ${e.via} to the world (${principal.label})`
           : `${principal.label} can reach ${sink.label} via ${e.via}`,
       detail: `${principal.meta.member ?? principal.label} holds ${e.via} on ${sink.label}.`,
+      path,
       signature: `IDENTITY_REACH|${e.via}|${principal.meta.member ?? principal.label}|${e.to}`,
     });
   }

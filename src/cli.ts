@@ -12,6 +12,7 @@ interface Args {
   declared: string;
   actual: string;
   json?: string;
+  js?: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -24,8 +25,14 @@ function parseArgs(argv: string[]): Args {
     if (a === '--declared') args.declared = argv[++i];
     else if (a === '--actual') args.actual = argv[++i];
     else if (a === '--json') args.json = argv[++i];
+    else if (a === '--js') args.js = argv[++i];
   }
   return args;
+}
+
+function writeFile(path: string, contents: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, contents);
 }
 
 function scanFile(path: string): ScanResult {
@@ -55,22 +62,22 @@ function main(): void {
   const drift = diffFindings(declared.findings, actual.findings);
   printReport(declared, actual, drift);
 
+  const payload = {
+    declared: { graph: serialize(declared.graph), findings: declared.findings },
+    actual: { graph: serialize(actual.graph), findings: actual.findings },
+    drift,
+  };
+
   if (args.json) {
-    mkdirSync(dirname(args.json), { recursive: true });
-    writeFileSync(
-      args.json,
-      JSON.stringify(
-        {
-          declared: { graph: serialize(declared.graph), findings: declared.findings },
-          actual: { graph: serialize(actual.graph), findings: actual.findings },
-          drift,
-        },
-        null,
-        2,
-      ),
-    );
-    console.log(`  ${args.json} written\n`);
+    writeFile(args.json, JSON.stringify(payload, null, 2));
+    console.log(`  ${args.json} written`);
   }
+  if (args.js) {
+    // A plain global assignment so the visualizer works over file:// with no server.
+    writeFile(args.js, `window.REACHR_DATA = ${JSON.stringify(payload)};\n`);
+    console.log(`  ${args.js} written`);
+  }
+  if (args.json || args.js) console.log('');
 
   // CI contract: non-zero when new attack paths reached production.
   process.exit(drift.introduced.length > 0 ? 1 : 0);
