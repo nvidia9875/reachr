@@ -3,12 +3,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { analyze } from './analyze.ts';
 import { printReport } from './report.ts';
+import { runCi } from './ci.ts';
 
 interface Args {
   declared: string;
   actual: string;
   json?: string;
   js?: string;
+  out?: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -18,10 +20,12 @@ function parseArgs(argv: string[]): Args {
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--declared') args.declared = argv[++i];
-    else if (a === '--actual') args.actual = argv[++i];
+    // --base/--head are CI-facing aliases for --declared/--actual
+    if (a === '--declared' || a === '--base') args.declared = argv[++i];
+    else if (a === '--actual' || a === '--head') args.actual = argv[++i];
     else if (a === '--json') args.json = argv[++i];
     else if (a === '--js') args.js = argv[++i];
+    else if (a === '--out') args.out = argv[++i];
   }
   return args;
 }
@@ -31,10 +35,7 @@ function writeFile(path: string, contents: string): void {
   writeFileSync(path, contents);
 }
 
-function main(): void {
-  const argv = process.argv.slice(2);
-  const args = parseArgs(argv[0] === 'scan' ? argv.slice(1) : argv);
-
+function runScan(args: Args): never {
   let result;
   try {
     result = analyze(args.declared, args.actual);
@@ -59,6 +60,16 @@ function main(): void {
 
   // CI contract: non-zero when new attack paths reached production.
   process.exit(drift.introduced.length > 0 ? 1 : 0);
+}
+
+function main(): void {
+  const argv = process.argv.slice(2);
+  const cmd = argv[0];
+  const rest = cmd === 'scan' || cmd === 'ci' ? argv.slice(1) : argv;
+  const args = parseArgs(rest);
+
+  if (cmd === 'ci') runCi(args);
+  runScan(args);
 }
 
 main();

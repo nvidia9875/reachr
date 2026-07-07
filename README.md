@@ -80,6 +80,31 @@ npx tsx src/cli.ts scan \
 Exit code is **1** when new paths reach your data, so it drops straight into a
 GitHub Action as a required check.
 
+## CI — attack-path regression
+
+`reachr ci` is the shift-left gate: it diffs a **base** state against a **head**
+state and **fails when the change opens a new path to a data store** — attack-path
+regression testing.
+
+```bash
+npx tsx src/cli.ts ci --base base.json --head head.json
+```
+
+It exits non-zero on any new path, writes `reachr-report.md`, appends a GitHub
+job summary, and emits `::error` annotations. The bundled workflow
+(`.github/workflows/reachr.yml`) runs it on every PR and upserts a comment:
+
+> ## 🛡️ Reachr — attack-path check
+> ❌ **FAIL — 3 new path(s) reach your data** (2 critical)
+>
+> | severity | finding | path |
+> |---|---|---|
+> | 🔴 critical | pii-db is directly reachable from the internet | `Internet → pii-db` |
+> | 🔴 critical | acme-pii-exports is directly reachable from the internet | `Internet → acme-pii-exports` |
+> | ⚪ medium | analytics can reach pii-db via roles/cloudsql.client | `analytics → pii-db` |
+
+`action.yml` packages the same check as a reusable composite Action.
+
 ## How it works
 
 ```
@@ -111,7 +136,7 @@ Graph truth is **deterministic code** — no LLM decides what can reach what.
 
 - [x] Web visualizer (layered attack-surface map, declared/actual toggle, drift in red)
 - [x] Gemini layer (Vertex AI): explain each path, generate the Terraform fix, NL queries
-- [ ] GitHub Action wrapper (PR comment with the introduced paths)
+- [x] GitHub Action wrapper — `reachr ci` (PR comment + job summary + annotations, fails the build)
 - [ ] `demo-target/`: real deployable GCP app (Cloud Run + LB + Armor + Cloud SQL
       + GCS) + `drift.sh`, and a `collect` command that reads real
       `terraform show -json` + Cloud Asset Inventory (upgrades the parser off the

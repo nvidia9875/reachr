@@ -2,6 +2,7 @@ node_modules/
 out/
 dist/
 viz/data.js
+reachr-report.md
 *.log
 .DS_Store
 .env
