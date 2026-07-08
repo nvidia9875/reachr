@@ -1,0 +1,37 @@
+{
+  "name": "reachr",
+  "version": "0.1.0",
+  "description": "Reachr — maps who can actually reach your crown jewels (Cloud SQL, GCS, ...) and catches drift between your Terraform (declared) and what is really deployed (actual).",
+  "type": "module",
+  "bin": {
+    "reachr": "src/cli.ts"
+  },
+  "scripts": {
+    "scan": "tsx src/cli.ts scan",
+    "scan:json": "tsx src/cli.ts scan --json out/graph.json",
+    "viz": "tsx src/cli.ts scan --js viz/data.js || true",
+    "agent": "tsx src/cli.ts agent",
+    "serve": "tsx src/server.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "gcp",
+    "terraform",
+    "attack-path",
+    "cloud-security",
+    "drift",
+    "reachability",
+    "gemini",
+    "vertex-ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^1.9.0",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.7.2"
+  }
+}

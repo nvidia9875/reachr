@@ -1,0 +1,15 @@
+node_modules/
+out/
+dist/
+viz/data.js
+reachr-report.md
+remediation/
+
+# local-only working files
+notes/
+docs/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example

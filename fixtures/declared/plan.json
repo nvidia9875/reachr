@@ -1,0 +1,94 @@
+{
+  "//": "Shape of `terraform show -json <plan>` (trimmed to the attributes Reachr reads). This is the DECLARED world: what your code says the infra should be.",
+  "format_version": "1.2",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "google_compute_global_forwarding_rule.https",
+          "type": "google_compute_global_forwarding_rule",
+          "name": "https",
+          "values": {
+            "name": "api-https",
+            "port_range": "443",
+            "backend_service": "google_compute_backend_service.api"
+          }
+        },
+        {
+          "address": "google_compute_security_policy.armor",
+          "type": "google_compute_security_policy",
+          "name": "armor",
+          "values": { "name": "api-armor" }
+        },
+        {
+          "address": "google_compute_backend_service.api",
+          "type": "google_compute_backend_service",
+          "name": "api",
+          "values": {
+            "name": "api-backend",
+            "security_policy": "google_compute_security_policy.armor",
+            "backends": ["google_cloud_run_v2_service.api"]
+          }
+        },
+        {
+          "address": "google_cloud_run_v2_service.api",
+          "type": "google_cloud_run_v2_service",
+          "name": "api",
+          "values": {
+            "name": "api",
+            "ingress": "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+          }
+        },
+        {
+          "address": "google_sql_database_instance.main",
+          "type": "google_sql_database_instance",
+          "name": "main",
+          "values": {
+            "name": "pii-db",
+            "database_version": "POSTGRES_15",
+            "settings": [
+              {
+                "tier": "db-custom-2-8192",
+                "ip_configuration": [
+                  {
+                    "ipv4_enabled": false,
+                    "private_network": "projects/acme-prod/global/networks/prod",
+                    "authorized_networks": []
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "address": "google_compute_firewall.api_to_sql",
+          "type": "google_compute_firewall",
+          "name": "api_to_sql",
+          "values": {
+            "name": "allow-api-sql",
+            "direction": "INGRESS",
+            "source_ranges": ["10.0.0.0/8"],
+            "allow": [{ "protocol": "tcp", "ports": ["5432"] }],
+            "connects_from": "google_cloud_run_v2_service.api",
+            "connects_to": "google_sql_database_instance.main"
+          }
+        },
+        {
+          "address": "google_storage_bucket.exports",
+          "type": "google_storage_bucket",
+          "name": "exports",
+          "values": { "name": "acme-pii-exports", "location": "US" }
+        },
+        {
+          "address": "google_project_iam_member.api_sql",
+          "type": "google_project_iam_member",
+          "name": "api_sql",
+          "values": {
+            "role": "roles/cloudsql.client",
+            "member": "serviceAccount:api@acme-prod.iam.gserviceaccount.com"
+          }
+        }
+      ]
+    }
+  }
+}
