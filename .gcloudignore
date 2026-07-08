@@ -1,0 +1,10 @@
+.git
+node_modules
+out
+dist
+viz/data.js
+reachr-report.md
+.env
+.env.local
+*.log
+.DS_Store
