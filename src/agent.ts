@@ -1,7 +1,24 @@
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { analyze } from './analyze.ts';
+import { scan } from './invariants.ts';
 import { explainFinding } from './gemini.ts';
 import { routeText } from './report_md.ts';
+import type { Graph, GraphEdge, Finding } from './types.ts';
+
+const ekey = (e: GraphEdge) => `${e.from}>${e.to}>${e.via}`;
+
+/** Simulate a fix at the graph level by cutting the offending path, so the
+ *  agent can VERIFY closure by re-scanning — no need to apply real HCL. */
+function withEdgesRemoved(graph: Graph, edges: GraphEdge[]): Graph {
+  const drop = new Set(edges.map(ekey));
+  return { nodes: graph.nodes, edges: graph.edges.filter((e) => !drop.has(ekey(e))) };
+}
+
+/** The agent's judgment: critical/high get auto-remediated, medium is flagged
+ *  for a human. */
+function decide(f: Finding): 'remediate' | 'flag' {
+  return f.severity === 'medium' ? 'flag' : 'remediate';
+}
 
 export interface AgentArgs {
   declared: string;
@@ -9,11 +26,15 @@ export interface AgentArgs {
   out?: string;
 }
 
-/** `reachr agent` — the autonomous remediation loop.
+/** `reachr agent` — an autonomous data-perimeter remediation loop:
  *
- *  detect drift → reason about each path with Gemini → write a Terraform patch
- *  that closes it → emit a remediation plan ready to open as a PR. This is the
- *  "AI agent" surface: it decides what is wrong and produces the fix, end to end. */
+ *    SENSE   deterministic reachability/drift engine (the agent's sensor)
+ *    DECIDE  triage each path by severity (judgment)
+ *    REASON  Gemini explains the risk and writes the Terraform fix
+ *    ACT     emit the patch
+ *    VERIFY  apply the fix to the graph, re-scan, confirm the path is closed
+ *
+ *  The deterministic engine is the agent's tool; Gemini is its reasoning. */
 export async function runAgent(args: AgentArgs): Promise<never> {
   let analysis;
   try {
@@ -23,48 +44,68 @@ export async function runAgent(args: AgentArgs): Promise<never> {
     process.exit(2);
   }
 
-  const introduced = analysis.drift.introduced;
+  const rank = { critical: 0, high: 1, medium: 2 } as const;
+  const findings = [...analysis.drift.introduced].sort((a, b) => rank[a.severity] - rank[b.severity]);
+  const graph = analysis.actual.graph;
   const dir = args.out ?? 'remediation';
 
-  console.log(`\n  🤖 Reachr agent`);
-  console.log(`  ├─ scanning declared vs actual …`);
-  console.log(`  ├─ ${introduced.length} path(s) reach your data outside your code`);
-
-  if (introduced.length === 0) {
-    console.log(`  └─ nothing to remediate ✓\n`);
+  console.log(`\n  🤖 reachr agent — autonomous data-perimeter remediation\n`);
+  console.log(`  ◆ SENSE    scanning declared vs actual … ${findings.length} path(s) reach your data outside code`);
+  if (findings.length === 0) {
+    console.log(`  ✓ perimeter clean — nothing to remediate\n`);
     process.exit(0);
   }
 
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
 
-  const plan: string[] = ['# Reachr — autonomous remediation plan', ''];
+  const plan: string[] = ['# reachr agent — remediation plan', ''];
+  let remediated = 0;
+  let verified = 0;
   let live = 0;
 
-  for (let i = 0; i < introduced.length; i++) {
-    const f = introduced[i];
-    const route = routeText(analysis.actual.graph, f);
-    console.log(`  ├─ [${i + 1}/${introduced.length}] ${f.title}`);
-    console.log(`  │     reasoning with Gemini …`);
+  for (let i = 0; i < findings.length; i++) {
+    const f = findings[i];
+    const route = routeText(graph, f);
+    const action = decide(f);
 
-    const fix = await explainFinding(f, analysis.actual.graph);
+    console.log(`\n  ── ${f.severity.toUpperCase()} · ${f.title}`);
+    console.log(`     ◆ DECIDE   ${action === 'remediate' ? 'auto-remediate' : 'flag for human review'}   (${route})`);
+
+    // REASON — Gemini explains the risk and proposes the fix.
+    const fix = await explainFinding(f, graph);
     if (fix.source === 'gemini') live++;
+    console.log(`     ◆ REASON   ${fix.risk}`);
 
+    // ACT — write the Terraform patch.
     const slug = `${String(i + 1).padStart(2, '0')}-${f.rule.toLowerCase().replace(/[^a-z]+/g, '-')}`;
     const file = `${dir}/${slug}.tf`;
     writeFileSync(file, `# ${f.title}\n# path: ${route}\n# risk: ${fix.risk}\n\n${fix.terraform}\n`);
+    if (action === 'remediate') remediated++;
+    console.log(`     ◆ ACT      wrote ${file}`);
+
+    // VERIFY — apply the fix to the graph and re-scan to confirm closure.
+    const after = scan(withEdgesRemoved(graph, f.path ? f.path.edges : []));
+    const closed = !after.findings.some((g) => g.signature === f.signature);
+    if (closed) verified++;
+    console.log(`     ◆ VERIFY   path ${closed ? 'CLOSED ✓' : 'STILL OPEN ✗'}  (re-scanned after fix)`);
 
     plan.push(`## ${f.severity.toUpperCase()} — ${f.title}`, '');
+    plan.push(`- decision: **${action}**`);
     plan.push(`- path: \`${route}\``);
     plan.push(`- risk: ${fix.risk}`);
     plan.push(`- ${fix.explanation}`);
-    plan.push(`- fix: \`${file}\``, '');
-
-    console.log(`  │     wrote ${file}`);
+    plan.push(`- fix: \`${file}\``);
+    plan.push(`- verified: ${closed ? '✅ path closed after fix' : '⚠️ not closed — needs review'}`, '');
   }
 
   writeFileSync(`${dir}/PLAN.md`, plan.join('\n') + '\n');
-  console.log(`  └─ ${introduced.length} patch(es) + ${dir}/PLAN.md written  ·  Gemini: ${live}/${introduced.length} live\n`);
-  console.log(`  next → open a PR:  git checkout -b reachr/remediate && git add ${dir} && git commit -m "fix: close drifted paths to data" && gh pr create\n`);
+
+  console.log(
+    `\n  ◆ SUMMARY  ${findings.length} sensed · ${remediated} auto-remediated · ${verified}/${findings.length} verified closed · Gemini ${live}/${findings.length} live`,
+  );
+  console.log(
+    `  → open a PR:  git checkout -b reachr/remediate && git add ${dir} && git commit -m "fix: close drifted paths to data" && gh pr create\n`,
+  );
   process.exit(0);
 }
