@@ -2,8 +2,10 @@
 
 対象：**DevOps × AI Agent Hackathon**（Findy / Google Cloud）。最終ピッチ **8/19（水）** @ Google 渋谷。
 
-> ⚠️ 正式な「応募方法」ページ（提出フォーム・締切・動画尺）は Notion の該当セクションが要確認。
-> このリストは、ハッカソンの必須技術（Gemini／Cloud Run／GitHub・CI-CD）と一般的な提出物から用意したもの。
+> ⏰ **作品提出締切：2026/7/10（金）23:59**（超過は審査対象外・同一作品は1回のみ）。
+> デプロイURLは **8/19 まで動作確認できる状態**を維持すること。
+> 提出は3STEP：**① Findy 参加申込フォーム → ② ProtoPedia 作品登録 → ③ 作品提出 Google Form**。
+> ProtoPedia／フォームの記入内容は **`PROTOPEDIA.md`** に用意済み（コピペ可）。
 
 ## ✅ 完了済み（コード・資材）
 
@@ -14,23 +16,24 @@
 - [x] `README.md`（使い方・アーキ）／`SUBMISSION.md`（提出用の概要・技術マッピング）
 - [x] 決定論フォールバック（認証なしでもデモが成立＝審査中に落ちない）
 
+## ✅ 済み
+
+- [x] **GitHub 公開リポジトリに push** → https://github.com/nvidia9875/reachr
+- [x] **システム構成図**（`docs/architecture.png`）
+- [x] **ProtoPedia／提出フォーム 記入内容**（`PROTOPEDIA.md`）
+
 ## ⬜ あなたが最後にやること（アカウント・録画が必要）
 
-1. **GitHub に公開リポジトリを作成して push**
+1. **Cloud Run にデプロイ**（要 `gcloud auth login` ＋課金有効なプロジェクト）
    ```bash
    cd ~/Desktop/reachr
-   gh repo create reachr --public --source=. --remote=origin --push
-   # or: git remote add origin <URL> && git push -u origin main
-   ```
-2. **Cloud Run にデプロイ**（要 `gcloud auth login` ＋課金有効なプロジェクト）
-   ```bash
    ./deploy.sh <PROJECT_ID>
    ```
-   → 出力された Service URL を控える。Explain が "fallback" 表示なら、スクリプト末尾が出す
-   `roles/aiplatform.user` 付与コマンドを実行。
-3. **デモ動画を録画**（下の絵コンテ）。公開 URL とリポジトリを説明欄に。
-4. **提出フォーム／ProtoPedia に登録** — 文面は `SUBMISSION.md` をそのまま流用可。
-5. **Notion「応募方法」で提出物・締切・動画尺を最終確認**（フォームや尺の指定があればそれに合わせる）。
+   → 出力された **Service URL** を控える（動画・ProtoPedia・提出フォームで使う）。
+   Explain が "fallback" 表示なら、スクリプト末尾が出す `roles/aiplatform.user` 付与コマンドを実行。
+2. **デモ動画を録画 → YouTube/Vimeo にアップ**（下の絵コンテ）。URL を控える。
+3. **ProtoPedia に作品登録**（`PROTOPEDIA.md` を貼る／`docs/architecture.png` と動画URLを添付／タグに `findy_hackathon`）。作品 URL を控える。
+4. **① Findy 参加申込フォーム**（未申込なら）→ **③ 作品提出 Google Form** に 3 URL（GitHub／デプロイ／ProtoPedia）を記入して提出。
 
 ## 🎬 デモ動画 絵コンテ（約2分）
 

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --abyss: oklch(10% 0.02 275);
+        --void: oklch(14% 0.02 275);
+        --line: oklch(32% 0.02 275);
+        --ink: oklch(96% 0.01 275);
+        --muted: oklch(72% 0.02 275);
+        --faint: oklch(58% 0.02 275);
+        --heal: oklch(82% 0.13 195);
+        --evolve: oklch(72% 0.17 295);
+        --warn: oklch(83% 0.15 80);
+        --danger: oklch(68% 0.23 18);
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+        --sans: "Inter", system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; width: 1600px; background:
+          radial-gradient(60% 50% at 16% 0%, oklch(28% 0.06 295 / 0.35), transparent 70%),
+          radial-gradient(55% 45% at 100% 12%, oklch(30% 0.08 195 / 0.25), transparent 70%),
+          var(--abyss);
+        color: var(--ink); font-family: var(--sans);
+        padding: 44px 52px; display: flex; flex-direction: column;
+      }
+      .head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px; }
+      .head h1 { margin: 0; font-size: 34px; letter-spacing: 0.02em; font-weight: 800; }
+      .head h1 b { color: var(--danger); }
+      .head .tag { color: var(--faint); font: 500 15px/1 var(--mono); }
+      .sub { color: var(--muted); font: 500 15px/1.4 var(--sans); margin: 0 0 26px; }
+
+      .flow { margin-top: 8px; display: grid; grid-template-columns: 300px 1fr 340px; gap: 30px; align-items: center; }
+      .colhead { font: 700 12px/1 var(--mono); letter-spacing: 0.24em; color: var(--faint); text-transform: uppercase; margin-bottom: 14px; }
+
+      .card {
+        border: 1px solid var(--line); border-radius: 14px; padding: 16px 17px; margin-bottom: 16px;
+        background: linear-gradient(180deg, oklch(20% 0.02 275 / 0.7), oklch(15% 0.02 275 / 0.7));
+        position: relative;
+      }
+      .card.tint-heal { border-color: color-mix(in oklch, var(--heal) 40%, transparent); }
+      .card.tint-evolve { border-color: color-mix(in oklch, var(--evolve) 40%, transparent); }
+      .card.tint-warn { border-color: color-mix(in oklch, var(--warn) 40%, transparent); }
+      .card .t { font: 700 16px/1.2 var(--sans); }
+      .card .d { margin-top: 6px; font: 500 12.5px/1.45 var(--sans); color: var(--muted); }
+      .card .k { margin-top: 8px; font: 600 10.5px/1 var(--mono); letter-spacing: 0.06em; color: var(--faint); }
+
+      /* center engine */
+      .engine {
+        border: 1.5px solid color-mix(in oklch, var(--heal) 38%, transparent); border-radius: 20px;
+        padding: 22px; background: linear-gradient(180deg, oklch(19% 0.03 275 / 0.75), oklch(13% 0.02 275 / 0.8));
+        box-shadow: 0 0 60px oklch(40% 0.08 275 / 0.35), inset 0 0 40px oklch(50% 0.06 195 / 0.06);
+        position: relative;
+      }
+      .engine .badge { position: absolute; top: -13px; left: 22px; background: var(--abyss); border: 1px solid color-mix(in oklch, var(--heal) 45%, transparent); color: var(--heal); font: 700 11px/1 var(--mono); letter-spacing: 0.14em; padding: 6px 12px; border-radius: 8px; }
+      .pipe { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+      .pipe .step { flex: 1; text-align: center; border: 1px solid var(--line); border-radius: 11px; padding: 13px 8px; background: oklch(17% 0.02 275 / 0.7); }
+      .pipe .step b { display: block; font: 700 14px/1.1 var(--sans); }
+      .pipe .step span { font: 500 10.5px/1.3 var(--mono); color: var(--faint); }
+      .pipe .arrow { color: var(--heal); font-size: 20px; flex: none; }
+      .det { text-align: center; font: 600 11px/1 var(--mono); letter-spacing: 0.1em; color: var(--faint); margin-bottom: 20px; }
+      .det b { color: var(--heal); }
+
+      .agent { border: 1px solid color-mix(in oklch, var(--evolve) 42%, transparent); border-radius: 14px; padding: 15px 16px; background: oklch(18% 0.03 295 / 0.5); }
+      .agent .h { display: flex; align-items: center; gap: 8px; font: 700 14px/1 var(--sans); margin-bottom: 12px; }
+      .agent .h em { font-style: normal; color: var(--evolve); font: 600 10.5px/1 var(--mono); letter-spacing: 0.1em; border: 1px solid color-mix(in oklch, var(--evolve) 40%, transparent); padding: 4px 8px; border-radius: 6px; }
+      .loop { display: flex; align-items: center; gap: 9px; }
+      .loop .s { flex: 1; text-align: center; border: 1px solid color-mix(in oklch, var(--evolve) 26%, transparent); border-radius: 9px; padding: 9px 4px; font: 700 11px/1.1 var(--mono); letter-spacing: 0.04em; background: oklch(16% 0.02 275 / 0.6); }
+      .loop .a { color: var(--evolve); font-size: 15px; }
+      .loop .s.verify { border-color: color-mix(in oklch, var(--heal) 45%, transparent); color: var(--heal); }
+
+      .arrowcol { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--faint); }
+
+      .badges { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+      .gcp { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 9px 15px; font: 600 12px/1 var(--mono); letter-spacing: 0.04em; color: var(--muted); }
+      .gcp .dot { width: 8px; height: 8px; border-radius: 99px; }
+      .foot { margin-top: 18px; color: var(--faint); font: 500 12px/1.5 var(--sans); }
+    </style>
+  </head>
+  <body>
+    <div class="head">
+      <h1>REACHR<b>.</b></h1>
+      <span class="tag">system architecture</span>
+    </div>
+    <p class="sub">Autonomous data-perimeter agent — maps who can reach your data stores, detects drift (declared vs actual), and remediates with Gemini. Runs on Cloud Run.</p>
+
+    <div class="flow">
+      <!-- INPUTS -->
+      <div>
+        <div class="colhead">Inputs</div>
+        <div class="card tint-heal">
+          <div class="t">Terraform · declared</div>
+          <div class="d">The intended infra. Read from <span style="color:var(--heal)">terraform show -json</span>.</div>
+          <div class="k">IaC</div>
+        </div>
+        <div class="card tint-warn">
+          <div class="t">Cloud Asset Inventory · actual</div>
+          <div class="d">What is really deployed in the GCP project right now.</div>
+          <div class="k">GOOGLE CLOUD</div>
+        </div>
+      </div>
+
+      <!-- ENGINE -->
+      <div>
+        <div class="colhead" style="text-align:center">Reachr · runs on Cloud Run</div>
+        <div class="engine">
+          <span class="badge">DETERMINISTIC CORE</span>
+          <div class="pipe">
+            <div class="step"><b>parse</b><span>JSON → resources</span></div>
+            <div class="arrow">→</div>
+            <div class="step"><b>graph</b><span>network + IAM</span></div>
+            <div class="arrow">→</div>
+            <div class="step"><b>reach</b><span>internet → data</span></div>
+            <div class="arrow">→</div>
+            <div class="step"><b>drift</b><span>declared vs actual</span></div>
+          </div>
+          <div class="det">graph truth is <b>deterministic code</b> — the LLM never invents what reaches what</div>
+
+          <div class="agent">
+            <div class="h">🤖 reachr agent <em>autonomous loop</em></div>
+            <div class="loop">
+              <div class="s">SENSE</div>
+              <div class="a">→</div>
+              <div class="s">DECIDE</div>
+              <div class="a">→</div>
+              <div class="s">REASON<br /><span style="color:var(--evolve)">Gemini</span></div>
+              <div class="a">→</div>
+              <div class="s">ACT<br />patch</div>
+              <div class="a">→</div>
+              <div class="s verify">VERIFY<br />re-scan</div>
+            </div>
+          </div>
+        </div>
+        <div class="badges" style="justify-content:center">
+          <span class="gcp"><span class="dot" style="background:var(--heal)"></span>Cloud Run</span>
+          <span class="gcp"><span class="dot" style="background:var(--evolve)"></span>Vertex AI · Gemini</span>
+          <span class="gcp"><span class="dot" style="background:var(--warn)"></span>Cloud Asset Inventory</span>
+        </div>
+      </div>
+
+      <!-- SURFACES -->
+      <div>
+        <div class="colhead">Surfaces</div>
+        <div class="card tint-heal">
+          <div class="t">🗺️ Attack-surface map</div>
+          <div class="d">declared ⇄ actual toggle, drift paths glow red, crown jewels flip PRIVATE⇄EXPOSED.</div>
+          <div class="k">WEB · CLOUD RUN</div>
+        </div>
+        <div class="card tint-evolve">
+          <div class="t">✦ Gemini explain &amp; fix</div>
+          <div class="d">Per-path risk + a minimal Terraform patch. NL queries over the graph.</div>
+          <div class="k">VERTEX AI</div>
+        </div>
+        <div class="card tint-warn">
+          <div class="t">⚙️ reachr ci · GitHub Action</div>
+          <div class="d">PR gate — fails when a change opens a new path to data; comments the routes.</div>
+          <div class="k">DEVOPS · CI/CD</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">つくる = Gemini agent&nbsp;&nbsp;·&nbsp;&nbsp;まわす = GitHub Actions (reachr ci)&nbsp;&nbsp;·&nbsp;&nbsp;とどける = Cloud Run deploy</div>
+  </body>
+</html>
