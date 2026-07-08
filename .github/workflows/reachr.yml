@@ -1,0 +1,55 @@
+name: Reachr attack-path check
+
+# Fails the PR when a change opens a NEW network/identity path to a data store.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  reachr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci || npm install
+
+      # In a real repo, produce the two states here, e.g.:
+      #   git checkout ${{ github.base_ref }} && terraform plan -out b.tfplan && terraform show -json b.tfplan > base.json
+      #   git checkout ${{ github.head_ref }} && terraform plan -out h.tfplan && terraform show -json h.tfplan > head.json
+      # This demo diffs the bundled fixtures (base = clean code, head = deployed reality).
+      - name: Reachr attack-path diff
+        id: reachr
+        continue-on-error: true
+        run: npx tsx src/cli.ts ci --base fixtures/real/declared.json --head fixtures/real/actual.json
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- reachr -->';
+            const body = marker + '\n' + fs.readFileSync('reachr-report.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find((c) => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Enforce (fail if new paths reach data)
+        if: steps.reachr.outcome == 'failure'
+        run: |
+          echo "Reachr: a change opened a new path to your data. See the PR comment."
+          exit 1

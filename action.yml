@@ -1,0 +1,30 @@
+name: "Reachr"
+description: "Fail the build when a change opens a new network or identity path to your data stores."
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  base:
+    description: "Base state JSON — terraform show -json of the base ref."
+    required: false
+    default: "fixtures/real/declared.json"
+  head:
+    description: "Head state JSON — terraform show -json of the PR, or a Cloud Asset Inventory snapshot."
+    required: false
+    default: "fixtures/real/actual.json"
+  out:
+    description: "Path to write the Markdown report to."
+    required: false
+    default: "reachr-report.md"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+    - run: npm ci || npm install
+      shell: bash
+    - run: npx tsx src/cli.ts ci --base "${{ inputs.base }}" --head "${{ inputs.head }}" --out "${{ inputs.out }}"
+      shell: bash
