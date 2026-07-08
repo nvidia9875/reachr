@@ -8,11 +8,11 @@ inputs:
   base:
     description: "Base state JSON — terraform show -json of the base ref."
     required: false
-    default: "fixtures/declared/plan.json"
+    default: "fixtures/real/declared.json"
   head:
     description: "Head state JSON — terraform show -json of the PR, or a Cloud Asset Inventory snapshot."
     required: false
-    default: "fixtures/actual/snapshot.json"
+    default: "fixtures/real/actual.json"
   out:
     description: "Path to write the Markdown report to."
     required: false

@@ -70,12 +70,20 @@ or a `GEMINI_API_KEY` — see `.env.example`. **Without credentials it uses a
 deterministic fallback**, so the demo always works. The graph itself is never
 produced by the LLM.
 
-Point it at your own captures:
+### Runs on real `terraform show -json`
+
+The bundled `fixtures/real/` are **genuine `terraform show -json` output**
+(Terraform 1.9 + the `google` provider — see the `.tf` sources next to them),
+and are the default inputs. Reachr auto-detects real Terraform output (it carries
+a `configuration` block) and resolves the wiring — the LB chain, Cloud Armor,
+`backend → serverless NEG → Cloud Run`, firewall targets — from
+`configuration…expressions[].references`. Point it at your own project:
 
 ```bash
-npx tsx src/cli.ts scan \
-  --declared path/to/plan.json \
-  --actual   path/to/asset-inventory.json
+# declared = your code; actual = the refreshed state (or a Cloud Asset Inventory export)
+terraform plan -out tfplan && terraform show -json tfplan > declared.json
+terraform apply -refresh-only && terraform show -json > actual.json
+npx tsx src/cli.ts scan --declared declared.json --actual actual.json
 ```
 
 Exit code is **1** when new paths reach your data, so it drops straight into a

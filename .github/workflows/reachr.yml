@@ -28,7 +28,7 @@ jobs:
       - name: Reachr attack-path diff
         id: reachr
         continue-on-error: true
-        run: npx tsx src/cli.ts ci --base fixtures/declared/plan.json --head fixtures/actual/snapshot.json
+        run: npx tsx src/cli.ts ci --base fixtures/real/declared.json --head fixtures/real/actual.json
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'

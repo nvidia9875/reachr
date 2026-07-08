@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { TfResource } from './types.ts';
+import { isTerraformShow, normalizeTerraform } from './tf.ts';
 
 // Both inputs share one envelope:
 //   { planned_values: { root_module: { resources: [ { address, type, name, values } ] } } }
@@ -16,6 +17,10 @@ export function parsePlan(path: string): TfResource[] {
   } catch (err) {
     throw new Error(`Invalid JSON in ${path}: ${(err as Error).message}`);
   }
+
+  // Genuine `terraform show -json` (has a `configuration` block) is normalized;
+  // our simplified fixtures fall through to the direct read below.
+  if (isTerraformShow(json)) return normalizeTerraform(json);
 
   const resources = json?.planned_values?.root_module?.resources;
   if (!Array.isArray(resources)) {

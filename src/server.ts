@@ -8,8 +8,8 @@ import { explainFinding, answerQuery } from './gemini.ts';
 // product). It serves the static map and exposes the Gemini-backed API.
 
 const PORT = Number(process.env.PORT ?? 8080);
-const DECLARED = process.env.REACHR_DECLARED ?? 'fixtures/declared/plan.json';
-const ACTUAL = process.env.REACHR_ACTUAL ?? 'fixtures/actual/snapshot.json';
+const DECLARED = process.env.REACHR_DECLARED ?? 'fixtures/real/declared.json';
+const ACTUAL = process.env.REACHR_ACTUAL ?? 'fixtures/real/actual.json';
 const VIZ_DIR = 'viz';
 
 const analysis = analyze(DECLARED, ACTUAL);

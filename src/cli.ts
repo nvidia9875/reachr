@@ -16,8 +16,8 @@ interface Args {
 
 function parseArgs(argv: string[]): Args {
   const args: Args = {
-    declared: 'fixtures/declared/plan.json',
-    actual: 'fixtures/actual/snapshot.json',
+    declared: 'fixtures/real/declared.json',
+    actual: 'fixtures/real/actual.json',
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
