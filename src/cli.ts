@@ -12,6 +12,7 @@ interface Args {
   json?: string;
   js?: string;
   out?: string;
+  pr?: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -27,6 +28,7 @@ function parseArgs(argv: string[]): Args {
     else if (a === '--json') args.json = argv[++i];
     else if (a === '--js') args.js = argv[++i];
     else if (a === '--out') args.out = argv[++i];
+    else if (a === '--pr') args.pr = true;
   }
   return args;
 }

@@ -103,6 +103,22 @@ If the Explain panel shows "deterministic fallback" after deploy, grant
 `roles/aiplatform.user` to the Cloud Run runtime service account (the script
 prints the exact command).
 
+### Autonomous operation
+
+The agent can **open a real remediation PR** (branch + Gemini-generated patches +
+verified closure):
+
+```bash
+npx tsx src/cli.ts agent --pr        # gh must be authenticated
+```
+
+…and run **continuously** as a Cloud Run Job on a schedule — every hour it senses
+drift, reasons, and files a PR, unattended:
+
+```bash
+./deploy-agent.sh <PROJECT_ID>       # Cloud Run Job + Cloud Scheduler (hourly)
+```
+
 ## CI — attack-path regression
 
 `reachr ci` is the shift-left gate: it diffs a **base** state against a **head**
