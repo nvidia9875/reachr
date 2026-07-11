@@ -76,6 +76,7 @@ export async function explainFinding(finding: Finding, graph: Graph): Promise<Ex
       config: {
         systemInstruction: EXPLAIN_SYSTEM,
         responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
         temperature: 0.2,
       },
     });
@@ -103,6 +104,7 @@ export async function answerQuery(
       config: {
         systemInstruction: QUERY_SYSTEM,
         responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
         temperature: 0.1,
       },
     });
@@ -136,7 +138,7 @@ export async function triageFinding(finding: Finding, graph: Graph): Promise<Tri
         `Detail: ${finding.detail}`,
         `Decide the action. Produce the JSON now.`,
       ].join('\n'),
-      config: { systemInstruction: TRIAGE_SYSTEM, responseMimeType: 'application/json', temperature: 0.1 },
+      config: { systemInstruction: TRIAGE_SYSTEM, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 }, temperature: 0.1 },
     });
     const p = JSON.parse(extractText(res));
     return {
