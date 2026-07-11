@@ -153,8 +153,8 @@ export async function triageFinding(finding: Finding, graph: Graph): Promise<Tri
 
 function fallbackTriage(finding: Finding): Triage {
   return finding.severity === 'medium'
-    ? { action: 'escalate', reason: 'standing access — a human should confirm intent before revoking', source: 'fallback' }
-    : { action: 'remediate', reason: `${finding.severity} exposure of a data store — close immediately`, source: 'fallback' };
+    ? { action: 'escalate', reason: '権限付与は意図的な場合もあるため、人間が確認', source: 'fallback' }
+    : { action: 'remediate', reason: 'データが公開されている重大な状態なので、すぐ修正', source: 'fallback' };
 }
 
 const TRIAGE_SYSTEM =
@@ -163,7 +163,7 @@ const TRIAGE_SYSTEM =
   'now or ESCALATE to a human. Auto-remediate clear-cut public exposure of data; ' +
   'escalate anything that may be intentional (e.g. a specific service account\'s ' +
   'standing access). Respond ONLY with JSON {"action":"remediate"|"escalate", ' +
-  '"reason": string} — reason is one short clause.';
+  '"reason": string} — reason is one short clause IN PLAIN JAPANESE.';
 
 // ── prompts ──────────────────────────────────────────────────────────────────
 const EXPLAIN_SYSTEM =
@@ -173,7 +173,10 @@ const EXPLAIN_SYSTEM =
   '{"risk": string, "explanation": string, "terraform": string}. "risk" is one ' +
   'blunt sentence a manager understands. "explanation" is 2–4 sentences for ' +
   'engineers. "terraform" is a MINIMAL, valid HCL patch that closes exactly this ' +
-  'path (least privilege, no extra commentary outside the code).';
+  'path (least privilege, no extra commentary outside the code). ' +
+  'IMPORTANT: write "risk" and "explanation" in PLAIN JAPANESE that a ' +
+  'first-year engineer understands (avoid jargon, explain terms). Keep the ' +
+  '"terraform" value as code.';
 
 function pathText(path: AttackPath | undefined, graph: Graph): string {
   if (!path) return '(no path)';
@@ -198,7 +201,8 @@ const QUERY_SYSTEM =
   'edges, and the list of findings (each with a "signature"). Respond ONLY with ' +
   'JSON {"answer": string, "matched": string[]} where "matched" is the list of ' +
   'finding signatures relevant to the question. Be concise and factual; never ' +
-  'invent nodes or paths not present in the graph.';
+  'invent nodes or paths not present in the graph. Write "answer" in PLAIN ' +
+  'JAPANESE that a first-year engineer understands.';
 
 function queryPrompt(question: string, graph: Graph, findings: Finding[]): string {
   const nodes = [...graph.nodes.values()].map((n) => `${n.id}(${n.kind})`).join(', ');
@@ -220,9 +224,9 @@ function isBucket(t: string): boolean { return t.includes('storage_bucket'); }
 function fallbackExplain(finding: Finding, sinkType: string): Explanation {
   if (finding.rule === 'PUBLIC_DATASTORE' && isSql(sinkType)) {
     return {
-      risk: 'Your PII database is reachable from the entire internet.',
+      risk: '個人情報の入ったデータベースが、インターネット全体からアクセスできる状態です。',
       explanation:
-        'Cloud SQL has a public IP with an authorized network of 0.0.0.0/0, so anyone on the internet can attempt to connect and brute-force credentials or exfiltrate data. This was changed outside Terraform, so code review never caught it.',
+        'Cloud SQL に公開IPがあり、接続を許可する範囲が 0.0.0.0/0（＝全世界）になっています。つまり誰でも接続を試せ、パスワード総当たりやデータの持ち出しが可能です。この変更は Terraform の外で行われたため、コードレビューでは気づけませんでした。',
       terraform: [
         'resource "google_sql_database_instance" "main" {',
         '  settings {',
@@ -239,9 +243,9 @@ function fallbackExplain(finding: Finding, sinkType: string): Explanation {
   }
   if (finding.rule === 'PUBLIC_DATASTORE' && isBucket(sinkType)) {
     return {
-      risk: 'A bucket holding data exports is readable by the whole world.',
+      risk: 'データ書き出し用のバケットが、全世界から閲覧できる状態です。',
       explanation:
-        'An IAM binding grants allUsers access to the export bucket, exposing whatever it contains to anonymous download. Enforce public-access prevention so a stray grant can never make it public again.',
+        'IAM の設定で allUsers（＝全員）に閲覧権限が付いており、中身が匿名でダウンロードできます。「公開防止(public access prevention)」を有効にすれば、うっかり公開設定を付けても二度と公開されなくなります。',
       terraform: [
         'resource "google_storage_bucket" "exports" {',
         '  name                        = "acme-pii-exports"',
@@ -255,9 +259,9 @@ function fallbackExplain(finding: Finding, sinkType: string): Explanation {
   }
   if (finding.rule === 'NO_WAF_TO_DATA') {
     return {
-      risk: 'Public traffic reaches your data without passing the WAF.',
+      risk: '外部からの通信が、WAF（防御）を通らずにデータへ届いています。',
       explanation:
-        'The load-balanced path to the data store has no Cloud Armor policy attached, so requests hit the backend uninspected — no rate limiting, no OWASP rules. Attach the existing security policy to the backend service.',
+        'ロードバランサ経由の経路に Cloud Armor（WAF）が付いていないため、リクエストが検査されずにバックエンドへ届きます。レート制限も攻撃検知も効きません。既存のセキュリティポリシーをバックエンドに紐付けてください。',
       terraform: [
         'resource "google_compute_backend_service" "api" {',
         '  security_policy = google_compute_security_policy.armor.id  # attach Cloud Armor',
@@ -268,9 +272,9 @@ function fallbackExplain(finding: Finding, sinkType: string): Explanation {
   }
   // IDENTITY_REACH
   return {
-    risk: 'A tool holds standing access to your database that your code never granted.',
+    risk: 'コードで許可していないツールが、データベースへの権限を持っています。',
     explanation:
-      'A service account was granted a Cloud SQL / Storage role out-of-band, so it can reach the data by identity regardless of the network. Revoke it and grant access only through Terraform with least privilege.',
+      'あるサービスアカウントに Cloud SQL / Storage の権限が Terraform の外で付与されており、ネットワークに関係なく「権限」でデータへ到達できます。剥奪し、必要な権限だけを Terraform で管理してください。',
     terraform: [
       '# Revoke the out-of-band grant (manage all data-access IAM in Terraform):',
       '#   gcloud projects remove-iam-policy-binding acme-prod \\',
@@ -294,7 +298,7 @@ function fallbackQuery(question: string, findings: Finding[], introduced: Findin
 
   const answer =
     matched.length === 0
-      ? 'Nothing in the graph matches that.'
-      : `${matched.length} path(s) match: ` + matched.map((f) => f.title).join('; ') + '.';
+      ? '該当する経路はありません。'
+      : `${matched.length} 件の経路が該当します：` + matched.map((f) => f.title).join('／') + '。';
   return { answer, matched: matched.map((f) => f.signature), source: 'fallback' };
 }

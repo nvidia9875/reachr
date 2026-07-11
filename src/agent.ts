@@ -72,10 +72,10 @@ export async function runAgent(args: AgentArgs): Promise<never> {
   const graph = analysis.actual.graph;
   const dir = args.out ?? 'remediation';
 
-  console.log(`\n  🤖 reachr agent — autonomous data-perimeter remediation\n`);
-  console.log(`  ◆ SENSE    scanning declared vs actual … ${findings.length} path(s) reach your data outside code`);
+  console.log(`\n  🤖 reachr agent — データ境界の自律修復\n`);
+  console.log(`  ◆ SENSE    コードと本番を照合中 … ${findings.length} 件の経路がデータに到達`);
   if (findings.length === 0) {
-    console.log(`  ✓ perimeter clean — nothing to remediate\n`);
+    console.log(`  ✓ 問題なし — 修正するものはありません\n`);
     process.exit(0);
   }
 
@@ -94,7 +94,7 @@ export async function runAgent(args: AgentArgs): Promise<never> {
     const action = triage.action === 'escalate' ? 'flag' : 'remediate';
 
     console.log(`\n  ── ${f.severity.toUpperCase()} · ${f.title}`);
-    console.log(`     ◆ DECIDE   ${action === 'remediate' ? 'auto-remediate' : 'flag for human review'} — ${triage.reason}`);
+    console.log(`     ◆ DECIDE   ${action === 'remediate' ? '自動修正' : '人間の確認へ'} — ${triage.reason}`);
 
     // REASON — Gemini explains the risk and proposes the fix.
     const fix = await explainFinding(f, graph);
@@ -106,13 +106,13 @@ export async function runAgent(args: AgentArgs): Promise<never> {
     const file = `${dir}/${slug}.tf`;
     writeFileSync(file, `# ${f.title}\n# path: ${route}\n# risk: ${fix.risk}\n\n${fix.terraform}\n`);
     if (action === 'remediate') remediated++;
-    console.log(`     ◆ ACT      wrote ${file}`);
+    console.log(`     ◆ ACT      修正コードを生成: ${file}`);
 
     // VERIFY — apply the fix to the graph and re-scan to confirm closure.
     const after = scan(withEdgesRemoved(graph, f.path ? f.path.edges : []));
     const closed = !after.findings.some((g) => g.signature === f.signature);
     if (closed) verified++;
-    console.log(`     ◆ VERIFY   path ${closed ? 'CLOSED ✓' : 'STILL OPEN ✗'}  (re-scanned after fix)`);
+    console.log(`     ◆ VERIFY   経路を${closed ? '遮断 ✓' : 'まだ遮断できず ✗'}  (修正後に再スキャン)`);
 
     plan.push(`## ${f.severity.toUpperCase()} — ${f.title}`, '');
     plan.push(`- decision: **${action}**`);
@@ -126,12 +126,12 @@ export async function runAgent(args: AgentArgs): Promise<never> {
   writeFileSync(`${dir}/PLAN.md`, plan.join('\n') + '\n');
 
   console.log(
-    `\n  ◆ SUMMARY  ${findings.length} sensed · ${remediated} auto-remediated · ${verified}/${findings.length} verified closed · Gemini ${live}/${findings.length} live`,
+    `\n  ◆ SUMMARY  検出 ${findings.length} 件 · 自動修正 ${remediated} 件 · 遮断確認 ${verified}/${findings.length} 件 · Gemini ${live}/${findings.length} 件`,
   );
   if (args.pr) {
     openPullRequest(dir, findings.length);
   } else {
-    console.log(`  → open a PR with these fixes:  reachr agent --pr\n`);
+    console.log(`  → この修正でPRを作成:  reachr agent --pr\n`);
   }
   process.exit(0);
 }

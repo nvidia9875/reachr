@@ -16,15 +16,15 @@ export function scan(graph: Graph): ScanResult {
       // internet -> datastore, nothing in between: directly exposed.
       findings.push(
         networkFinding(path, 'PUBLIC_DATASTORE', 'critical',
-          `${sink.label} is directly reachable from the internet`,
-          `${sink.label} accepts connections from 0.0.0.0/0 with no gateway in front.`),
+          `${sink.label} がインターネットから直接アクセスできます`,
+          `${sink.label} は 0.0.0.0/0（全世界）からの接続を受け付けており、手前に防御がありません。`),
       );
     } else if (!path.passesWaf) {
       // a real path exists but skips Cloud Armor.
       findings.push(
         networkFinding(path, 'NO_WAF_TO_DATA', 'critical',
-          `Public route reaches ${sink.label} without a WAF`,
-          `Traffic can travel from the internet to ${sink.label} without passing Cloud Armor.`),
+          `WAF を通らずに ${sink.label} へ届く公開経路があります`,
+          `インターネットから ${sink.label} まで、Cloud Armor（WAF）を通らずに到達できます。`),
       );
     }
   }
@@ -48,9 +48,9 @@ export function scan(graph: Graph): ScanResult {
       sink: e.to,
       title:
         e.exposure === 'public'
-          ? `${sink.label} grants ${e.via} to the world (${principal.label})`
-          : `${principal.label} can reach ${sink.label} via ${e.via}`,
-      detail: `${principal.meta.member ?? principal.label} holds ${e.via} on ${sink.label}.`,
+          ? `${sink.label} が ${e.via} を全員(allUsers)に付与しています`
+          : `${principal.label} が ${e.via} で ${sink.label} にアクセスできます`,
+      detail: `${principal.meta.member ?? principal.label} が ${sink.label} に対して ${e.via} を保持しています。`,
       path,
       signature: `IDENTITY_REACH|${e.via}|${principal.meta.member ?? principal.label}|${e.to}`,
     });

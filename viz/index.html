@@ -31,9 +31,10 @@
         --healthy: oklch(82% 0.16 155); /* green — safe */
         --orbit: oklch(72% 0.17 50); /* orange */
 
-        --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui;
-        --font-body: "Hanken Grotesk", ui-sans-serif, system-ui;
-        --font-mono: "JetBrains Mono", ui-monospace, monospace;
+        --jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo";
+        --font-display: "Bricolage Grotesque", var(--jp), ui-sans-serif, system-ui;
+        --font-body: "Hanken Grotesk", var(--jp), ui-sans-serif, system-ui;
+        --font-mono: "JetBrains Mono", var(--jp), ui-monospace, monospace;
 
         --glass: color-mix(in oklch, var(--surface) 60%, transparent);
         --glass-line: color-mix(in oklch, var(--ink) 10%, transparent);
@@ -295,19 +296,19 @@
     <header>
       <div class="brand">
         <h1 class="display">REACHR<b>.</b></h1>
-        <span class="tag">who can reach your crown jewels</span>
+        <span class="tag">公開されたDB・ストレージを見つけて、AIが直す</span>
       </div>
       <div class="spacer"></div>
-      <div class="seg" role="group" aria-label="View">
-        <button class="declared" data-mode="declared" data-on="false">DECLARED</button>
-        <button class="actual" data-mode="actual" data-on="true">ACTUAL</button>
+      <div class="seg" role="group" aria-label="表示切替">
+        <button class="declared" data-mode="declared" data-on="false">コード</button>
+        <button class="actual" data-mode="actual" data-on="true">本番</button>
       </div>
       <div id="verdict" class="pill"></div>
     </header>
 
     <main>
-      <section class="hud map" aria-label="Attack-surface map">
-        <span class="hud-tab">ATTACK SURFACE · GCP acme-prod</span>
+      <section class="hud map" aria-label="攻撃経路マップ">
+        <span class="hud-tab">攻撃経路マップ · GCP acme-prod</span>
         <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
         <div class="scroll">
           <div class="stage" id="stage">
@@ -320,30 +321,30 @@
 
       <aside>
         <div class="hud pad" id="driftPanel" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
-          <span class="hud-tab">DRIFT · declared → actual</span>
+          <span class="hud-tab">ズレ · コード → 本番</span>
           <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
           <div class="drift-head">
-            <span class="panel-title">paths into your data</span>
+            <span class="panel-title">データに届く経路</span>
             <span class="drift-count" id="driftCount">0</span>
           </div>
           <div class="sub" id="driftSub"></div>
-          <div class="qbar"><span class="ico">✦</span><input id="q" placeholder="ask Gemini: can anyone reach my DB?" autocomplete="off" aria-label="Ask a question about the graph" /></div>
+          <div class="qbar"><span class="ico">✦</span><input id="q" placeholder="Geminiに質問：DBに届く経路は？" autocomplete="off" aria-label="グラフについて質問する" /></div>
           <div class="qanswer" id="qanswer"></div>
           <ul class="findings" id="findings"></ul>
         </div>
-        <div class="hud legend" aria-label="Legend">
+        <div class="hud legend" aria-label="凡例">
           <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
-          <div><i style="border-color: var(--danger)"></i> reaches data</div>
-          <div><i style="border-color: var(--heal)"></i> WAF-inspected</div>
-          <div><i style="border-color: var(--warn); border-top-style: dashed"></i> identity</div>
-          <div><i style="border-color: var(--faint)"></i> internal</div>
+          <div><i style="border-color: var(--danger)"></i> データに到達</div>
+          <div><i style="border-color: var(--heal)"></i> WAF通過</div>
+          <div><i style="border-color: var(--warn); border-top-style: dashed"></i> 権限(IAM)</div>
+          <div><i style="border-color: var(--faint)"></i> 内部通信</div>
         </div>
       </aside>
     </main>
 
     <div class="overlay" id="overlay" hidden>
-      <div class="hud sheet" role="dialog" aria-modal="true" aria-label="Explain and fix">
-        <span class="hud-tab">GEMINI · EXPLAIN &amp; FIX</span>
+      <div class="hud sheet" role="dialog" aria-modal="true" aria-label="説明と修正">
+        <span class="hud-tab">GEMINI · 説明と修正</span>
         <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
         <button class="close" id="sheetClose" aria-label="Close">✕</button>
         <div id="sheetBody"></div>
@@ -354,7 +355,7 @@
     <script>
       const D = window.REACHR_DATA;
       const ICON = { internet: "🌐", lb: "🔀", waf: "🛡️", compute: "⚙️", datastore: "🗄️", identity: "🔑" };
-      const COLS = ["Internet", "Edge", "WAF", "Backend", "Compute", "Data"];
+      const COLS = ["インターネット", "ロードバランサ", "WAF", "バックエンド", "アプリ", "データ"];
       const COLW = 172, NODEW = 140, NODEH = 80, MX = 26, MID1 = 168, MID2 = 396, ROWH = 118;
 
       const ekey = (e) => `${e.from}>${e.to}>${e.via}`;
@@ -399,24 +400,24 @@
         return "";
       }
 
-      const KIND_TAG = { internet: "INTERNET", waf: "WAF", compute: "COMPUTE", datastore: "DATASTORE", identity: "IDENTITY" };
+      const KIND_TAG = { internet: "インターネット", waf: "WAF (防御)", compute: "アプリ", datastore: "データ", identity: "権限 (IAM)" };
       function kindTag(n) {
         const t = n.meta && n.meta.type;
-        if (t === "google_compute_backend_service") return "BACKEND";
-        if (t === "google_compute_global_forwarding_rule" || t === "google_compute_forwarding_rule") return "LOAD BALANCER";
+        if (t === "google_compute_backend_service") return "バックエンド";
+        if (t === "google_compute_global_forwarding_rule" || t === "google_compute_forwarding_rule") return "ロードバランサ";
         return KIND_TAG[n.kind] || String(n.kind).toUpperCase();
       }
       function statusPill(n, hit) {
         if (n.kind === "datastore") {
           return hit
-            ? `<span class="state exposed mode-actual">exposed</span><span class="state safe mode-declared">private</span>`
-            : `<span class="state safe">private</span>`;
+            ? `<span class="state exposed mode-actual">公開</span><span class="state safe mode-declared">非公開</span>`
+            : `<span class="state safe">非公開</span>`;
         }
-        if (n.kind === "waf") return `<span class="state">active</span>`;
+        if (n.kind === "waf") return `<span class="state">稼働中</span>`;
         if (n.kind === "internet") return `<span class="state">0.0.0.0/0</span>`;
-        if (n.kind === "identity") return `<span class="state">principal</span>`;
-        if (n.kind === "compute") return `<span class="state">service</span>`;
-        return `<span class="state">routes</span>`;
+        if (n.kind === "identity") return `<span class="state">権限</span>`;
+        if (n.kind === "compute") return `<span class="state">実行</span>`;
+        return `<span class="state">転送</span>`;
       }
       function buildFooter(G, drift) {
         const nodes = G.nodes;
@@ -427,14 +428,14 @@
         const stat = (v, l, cls) => `<div class="stat"><b class="${cls || ""}">${v}</b><span>${l}</span></div>`;
         const bars = Array.from({ length: 9 }, (_, i) => `<i style="height:${7 + ((i * 7) % 15)}px;animation-delay:${(i * 0.09).toFixed(2)}s"></i>`).join("");
         document.getElementById("mapfoot").innerHTML =
-          stat(dataStores, "data stores") +
+          stat(dataStores, "データ数") +
           `<div class="sep"></div>` +
-          stat(exposed, "exposed", exposed ? "danger" : "safe") +
+          stat(exposed, "公開中", exposed ? "danger" : "safe") +
           `<div class="sep"></div>` +
-          stat(identities, "identities") +
+          stat(identities, "権限数") +
           `<div class="sep"></div>` +
-          stat(paths, "drift paths", paths ? "danger" : "safe") +
-          `<div class="live"><div class="wave">${bars}</div><div class="livetag"><span class="led"></span>monitoring</div></div>`;
+          stat(paths, "危険な経路", paths ? "danger" : "safe") +
+          `<div class="live"><div class="wave">${bars}</div><div class="livetag"><span class="led"></span>監視中</div></div>`;
       }
 
       function render() {
@@ -538,12 +539,13 @@
         document.getElementById("driftCount").classList.toggle("zero", intro.length === 0);
         document.getElementById("driftSub").textContent =
           intro.length === 0
-            ? "Nothing reaches your data outside your Terraform."
-            : "exist in production but not in your Terraform.";
+            ? "コードにない経路は本番にありません。"
+            : "本番だけに存在し、コードには無い経路です。";
 
         if (intro.length === 0) {
-          ul.innerHTML = `<div class="empty">✓ clean — no drift into your crown jewels.</div>`;
+          ul.innerHTML = `<div class="empty">✓ 問題なし — データに届く新しい経路はありません。</div>`;
         }
+        const SEV_JP = { critical: "重大", high: "高", medium: "中" };
         intro
           .slice()
           .sort((a, b) => sev(a) - sev(b))
@@ -552,7 +554,7 @@
             li.className = "finding";
             const route = f.path ? f.path.nodeIds.map((id) => nodeLabel(G, id)).join("  →  ") : "";
             li.innerHTML =
-              `<span class="chip ${f.severity}">${f.severity}</span>` +
+              `<span class="chip ${f.severity}">${SEV_JP[f.severity] || f.severity}</span>` +
               `<span><span class="ft">${f.title}</span><span class="fr">${route}</span></span>`;
             const keys = f.path ? f.path.edges.map(ekey) : [];
             li.addEventListener("mouseenter", () => focusEdges(edgeEls, keys, true));
@@ -567,11 +569,11 @@
         const panel = document.getElementById("driftPanel");
         if (intro.length === 0) {
           v.className = "pill pass";
-          v.innerHTML = `<span class="led"></span> PASS · no drift`;
+          v.innerHTML = `<span class="led"></span> 安全 · ズレなし`;
         } else {
           const crit = intro.filter((f) => f.severity === "critical").length;
           v.className = "pill fail";
-          v.innerHTML = `<span class="led"></span> FAIL · ${intro.length} reach data · ${crit} crit`;
+          v.innerHTML = `<span class="led"></span> 危険 · ${intro.length}件がデータに到達 · 重大${crit}`;
           panel.classList.add("is-danger");
         }
       }
@@ -607,7 +609,7 @@
         overlay.hidden = false;
         const route = f.path ? f.path.nodeIds.map((id) => nodeLabel(D.actual.graph, id)).join("  →  ") : "";
         const head = `<h3>${escapeHtml(f.title)}</h3><div class="route">${escapeHtml(route)}</div>`;
-        body.innerHTML = head + `<div class="loading">✦ asking <b>Gemini</b> to explain &amp; fix…</div>`;
+        body.innerHTML = head + `<div class="loading">✦ <b>Gemini</b> が説明と修正を生成中…</div>`;
         try {
           const r = await fetch("/api/explain", {
             method: "POST",
@@ -620,16 +622,16 @@
             head +
             `<div class="risk">${escapeHtml(d.risk)}</div>` +
             `<div class="explain">${escapeHtml(d.explanation)}</div>` +
-            `<div class="fixhead"><span class="panel-title">Terraform fix</span><button class="copy" id="copyfix">COPY</button></div>` +
+            `<div class="fixhead"><span class="panel-title">Terraform 修正コード</span><button class="copy" id="copyfix">コピー</button></div>` +
             `<pre>${escapeHtml(d.terraform)}</pre>` +
-            `<div class="badge">generated by <b>${d.source === "gemini" ? "Gemini · Vertex AI" : "deterministic fallback"}</b></div>`;
+            `<div class="badge">生成: <b>${d.source === "gemini" ? "Gemini · Vertex AI" : "簡易フォールバック"}</b></div>`;
           document.getElementById("copyfix").addEventListener("click", (ev) => {
             navigator.clipboard && navigator.clipboard.writeText(d.terraform);
-            ev.target.textContent = "COPIED";
-            setTimeout(() => (ev.target.textContent = "COPY"), 1200);
+            ev.target.textContent = "コピーしました";
+            setTimeout(() => (ev.target.textContent = "コピー"), 1200);
           });
         } catch {
-          body.innerHTML = head + `<div class="loading">Run <b>npm run serve</b> and open the served URL for live Gemini explanations &amp; fixes.</div>`;
+          body.innerHTML = head + `<div class="loading"><b>npm run serve</b> で起動したURLを開くと、Gemini の説明と修正が表示されます。</div>`;
         }
       }
       function closeSheet() { document.getElementById("overlay").hidden = true; }
@@ -657,7 +659,7 @@
       qInput.addEventListener("keydown", async (e) => {
         if (e.key !== "Enter" || !qInput.value.trim()) return;
         const ans = document.getElementById("qanswer");
-        ans.textContent = "✦ thinking…";
+        ans.textContent = "✦ 考え中…";
         try {
           const r = await fetch("/api/query", {
             method: "POST",
@@ -669,7 +671,7 @@
           ans.innerHTML = `${escapeHtml(d.answer)} <span class="src">· ${d.source}</span>`;
           highlightMatches(d.matched || []);
         } catch {
-          ans.innerHTML = `Run <b>npm run serve</b> for natural-language queries.`;
+          ans.innerHTML = `<b>npm run serve</b> で起動したURLで、自然言語の質問が使えます。`;
         }
       });
 
